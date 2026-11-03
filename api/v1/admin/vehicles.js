@@ -117,10 +117,27 @@ export default async function handler(req, res) {
         }
       }
 
+      if (req.body?.imageUrl && !imageUrl) throw new ApiError(400, "INVALID_IMAGE_URL");
       if (imageUrl) {
         await client.query(
           "INSERT INTO public.vehicle_media (vehicle_id, storage_key, media_type, sort_order, approved) VALUES ($1::uuid,$2,'photo',0,true)",
           [vehicle.id, imageUrl]
+        );
+      }
+
+      const documents = Array.isArray(req.body?.documents) ? req.body.documents.slice(0, 8) : [];
+      for (const document of documents) {
+        const documentType = text(document?.documentType, 80);
+        const documentUrl = safeHttpsUrl(document?.url);
+        const expiresOn = document?.expiresOn || null;
+        if (!documentType || !documentUrl || (expiresOn && !/^\\d{4}-\\d{2}-\\d{2}$/.test(expiresOn))) {
+          throw new ApiError(400, "INVALID_VEHICLE_DOCUMENT");
+        }
+        await client.query(
+          `INSERT INTO public.vehicle_documents
+            (vehicle_id,document_type,storage_key,expires_on,review_status)
+           VALUES ($1::uuid,$2,$3,$4::date,'pending')`,
+          [vehicle.id, documentType, documentUrl, expiresOn]
         );
       }
 
