@@ -1,0 +1,3 @@
+-- The versioned initial schema is maintained in database/schema.sql.
+-- This migration file is a tracked pointer; run schema.sql on an empty database only.
+-- Runtime rollout is recorded in public.schema_migrations as 0001_initial.
