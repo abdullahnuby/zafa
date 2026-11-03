@@ -68,3 +68,8 @@ The customer can pass the password check, but the profile API rejects the bearer
 - Migration `0005_vehicle_default_driver` adds the nullable default-driver link without modifying existing vehicle records.
 - **Deployment note:** this source correction must not be described as live until the Vercel production deployment points to the resulting main commit and an actual browser upload appears in `vehicle-photos`.
 
+
+
+## Photo upload transport correction — 2026-11-03
+
+The earlier presigned browser PUT/CORS approach is superseded. Uploads now go to a same-origin authenticated Vercel function, which validates the actual JPEG/PNG/WEBP file signature and writes bytes to Neon Object Storage with server credentials. Each image is capped at 4 MB to stay below Vercel's documented 4.5 MB request-body limit. Failed uploads preserve the combined form for retry. A real browser upload still must be checked after deployment.

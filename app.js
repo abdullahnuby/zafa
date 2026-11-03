@@ -386,11 +386,11 @@ function adminErrorMessage(error){
   VEHICLE_PHOTO_REQUIRED:"أضف صورة واحدة على الأقل للسيارة قبل نشرها.",
   VEHICLE_DRIVER_REQUIRED:"اربط سائقًا بالإعلان قبل اعتماده للنشر.",
   INVALID_DRIVER_ID:"ملف السائق المحدد غير صحيح.",
-  PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED:"تعذر الاتصال بمخزن الصور من المتصفح. قد تكون إعدادات السماح بالرفع أو الشبكة هي السبب؛ لم نعتبر الصور محفوظة.",
-  VEHICLE_PHOTO_CORS_CONFIGURATION_FAILED:"تعذر تهيئة الاتصال الآمن بمخزن الصور. راجع إعدادات مخزن الصور ثم أعد المحاولة.",
-  PHOTO_UPLOAD_FAILED:"رفض مخزن الصور استقبال أحد الملفات. جرّب صورة بصيغة JPG أو PNG أو WEBP وبحجم أقل من 5 ميجابايت.",
+  PHOTO_UPLOAD_NETWORK_FAILED:"تعذر الاتصال بخادم رفع الصور. راجع الاتصال ثم أعد المحاولة؛ لم نعتبر الصور محفوظة.",
+  PHOTO_UPLOAD_SERVER_CONFIGURATION_FAILED:"تعذر تجهيز خدمة رفع الصور على الخادم. راجع إعدادات التخزين ثم أعد المحاولة.",
+  PHOTO_UPLOAD_FAILED:"رفض مخزن الصور استقبال أحد الملفات. جرّب صورة بصيغة JPG أو PNG أو WEBP وبحجم أقل من 4 ميجابايت.",
   INVALID_PHOTO_COUNT:"اختر من صورة واحدة إلى 3 صور فقط.",
-  INVALID_VEHICLE_PHOTO_FILE:"الصور المسموحة JPG أو PNG أو WEBP، وبحد أقصى 5 ميجابايت للصورة.",
+  INVALID_VEHICLE_PHOTO_FILE:"الصور المسموحة JPG أو PNG أو WEBP، وبحد أقصى 4 ميجابايت للصورة.",
   VEHICLE_PHOTO_LIMIT_REACHED:"وصلت السيارة إلى الحد الأقصى وهو 3 صور.",
   PHOTO_ALREADY_COMPLETED:"تم اكتمال رفع الصورة بالفعل، حدّث بيانات السيارة.",
   APPROVED_VEHICLE_NEEDS_PHOTO:"لا يمكن حذف آخر صورة من سيارة منشورة. أوقف النشر أو أضف صورة بديلة أولًا.",
@@ -707,7 +707,7 @@ function addCar(){
    <div class="field field-wide">
     <label>ارفع من صورة إلى 3 صور للسيارة</label>
     <input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-max-photos="3">
-    <small class="photo-upload-hint">JPG أو PNG أو WEBP — حتى 5 ميجابايت للصورة. ستظهر معاينة الصور هنا قبل الحفظ.</small>
+    <small class="photo-upload-hint">JPG أو PNG أو WEBP — حتى 4 ميجابايت للصورة. ستظهر معاينة الصور هنا قبل الحفظ.</small>
     <div id="vehicle-photo-preview" class="vehicle-photo-preview"></div>
    </div>
   </div>
@@ -751,8 +751,8 @@ function validateVehiclePhotoFiles(files,minCount=1,maxCount=3){
  }
  const allowed=["image/jpeg","image/png","image/webp"];
  for(const file of files){
-  if(!allowed.includes(file.type)||file.size<1||file.size>5*1024*1024){
-   toast("الصورة يجب أن تكون JPG أو PNG أو WEBP ولا تتجاوز 5 ميجابايت.");
+  if(!allowed.includes(file.type)||file.size<1||file.size>4*1024*1024){
+   toast("الصورة يجب أن تكون JPG أو PNG أو WEBP ولا تتجاوز 4 ميجابايت.");
    return false;
   }
  }
@@ -785,20 +785,32 @@ async function uploadVehiclePhotos(vehicleId,files){
  const mediaIds=uploads.map(item=>item.id);
  if(uploads.length!==files.length)throw new Error("PHOTO_UPLOAD_PREPARATION_FAILED");
  try{
+  const token=await getAuthToken();
+  if(!token)throw new Error("AUTH_REQUIRED");
   for(let i=0;i<uploads.length;i++){
    const item=uploads[i],file=files[i];
    let response;
    try {
     response=await fetch(item.uploadUrl,{
-     method:"PUT",
-     headers:{"Content-Type":item.contentType},
+     method:"POST",
+     headers:{
+      "Authorization":`Bearer ${token}`,
+      "Content-Type":item.contentType
+     },
      body:file,
      cache:"no-store"
     });
    } catch (cause) {
-    throw Object.assign(new Error("PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED"),{cause});
+    throw Object.assign(new Error("PHOTO_UPLOAD_NETWORK_FAILED"),{cause});
    }
-   if(!response.ok)throw new Error("PHOTO_UPLOAD_FAILED");
+   let result={};
+   try{result=await response.json();}catch{}
+   if(!response.ok||result.ok!==true){
+    const error=new Error(result.code||"PHOTO_UPLOAD_FAILED");
+    error.code=result.code||"PHOTO_UPLOAD_FAILED";
+    error.status=response.status;
+    throw error;
+   }
   }
   return await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{
    action:"complete",vehicleId,mediaIds
@@ -968,7 +980,7 @@ async function saveCar(){
   showListingConfirmation(vehicleName,[owner,driver]);
  }catch(error){
   const code=String(error?.code||error?.message||"");
-  const photoFailure=["PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED","PHOTO_UPLOAD_FAILED","VEHICLE_PHOTO_CORS_CONFIGURATION_FAILED"].includes(code);
+  const photoFailure=["PHOTO_UPLOAD_NETWORK_FAILED","PHOTO_UPLOAD_FAILED","PHOTO_UPLOAD_SERVER_CONFIGURATION_FAILED","VEHICLE_PHOTO_TOO_LARGE"].includes(code);
   setProgress(photoFailure
    ?"تعذر إكمال رفع الصور. بيانات المالك والسائق والسيارة محفوظة داخل النموذج؛ أصلح الاتصال ثم اضغط «استكمال حفظ الإعلان» دون إنشاء سجلات مكررة."
    :"لم تكتمل العملية. احتفظ بالنموذج كما هو واضغط «استكمال حفظ الإعلان» بعد تصحيح البيانات أو الاتصال. لن يعاد إنشاء السجلات التي حُفظت بالفعل.");
@@ -982,7 +994,7 @@ function openVehiclePhotoManager(vehicleId){
  const count=(vehicle.images||[]).length,remaining=Math.max(0,3-count);
  const body=`<div class="admin-current-photos">${(vehicle.images||[]).map((photo,index)=>`<div class="admin-current-photo">${photo.approved&&photo.url?`<img src="${escapeHtml(photo.url)}" alt="صورة السيارة">`:'<div class="photo-pending">رفع غير مكتمل</div>'}<small>${index===0?"الصورة الرئيسية":`صورة ${index+1}`}</small></div>`).join("")||'<div class="empty-state">لا توجد صور مضافة</div>'}</div>
   ${remaining?`<form id="vehicle-photo-form" data-id="${vehicleId}">
-   <div class="field"><label>اختر حتى ${remaining} ${remaining===1?"صورة إضافية":"صور إضافية"}</label><input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple data-max-photos="${remaining}"><small class="photo-upload-hint">الحد الأقصى 3 صور للسيارة كلها، و5 ميجابايت لكل صورة.</small><div id="vehicle-photo-preview" class="vehicle-photo-preview"></div></div>
+   <div class="field"><label>اختر حتى ${remaining} ${remaining===1?"صورة إضافية":"صور إضافية"}</label><input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple data-max-photos="${remaining}"><small class="photo-upload-hint">الحد الأقصى 3 صور للسيارة كلها، و4 ميجابايت لكل صورة.</small><div id="vehicle-photo-preview" class="vehicle-photo-preview"></div></div>
   </form>`:'<div class="notice">وصلت السيارة إلى الحد الأقصى: 3 صور. احذف صورة لإضافة صورة أخرى.</div>'}`;
  openModal("صور السيارة",body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button>${remaining?'<button class="btn btn-primary" data-action="save-vehicle-photos">رفع الصور</button>':""}`);
 }

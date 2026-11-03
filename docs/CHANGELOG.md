@@ -1,3 +1,10 @@
+## Photo upload transport correction — 2026-11-03
+
+- Replaced cross-origin browser PUTs with a same-origin authenticated Vercel upload function.
+- The server validates JPEG/PNG/WEBP signatures and writes bytes to the Neon `vehicle-photos` bucket. No browser CORS setup is needed.
+- Each image is capped at 4 MB, below Vercel's documented 4.5 MB request-body cap. Up to three images are sent in separate requests.
+- On upload failure, the one-form listing retains its generated IDs so the admin can retry without duplicating owner, driver or vehicle records.
+
 
 ## Single vehicle advertisement workflow — 2026-11-03
 
