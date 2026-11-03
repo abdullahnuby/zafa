@@ -2,6 +2,7 @@ const ROUTES = [
   { label: "get-session", path: "/get-session", method: "GET" },
   { label: "auth/get-session", path: "/auth/get-session", method: "GET" },
   { label: "api/auth/get-session", path: "/api/auth/get-session", method: "GET" },
+  { label: "token", path: "/token", method: "GET" },
   { label: "sign-in/email", path: "/sign-in/email", method: "POST" },
   { label: "auth/sign-in/email", path: "/auth/sign-in/email", method: "POST" },
   { label: "api/auth/sign-in/email", path: "/api/auth/sign-in/email", method: "POST" }
@@ -41,8 +42,14 @@ export default async function handler(req, res) {
         code: typeof body.code === "string" ? body.code : null,
         message: typeof body.message === "string" ? body.message.slice(0, 100) : null
       });
-    } catch {
-      results.push({ route: route.label, method: route.method, status: 0, code: "NETWORK_ERROR" });
+    } catch (error) {
+      results.push({
+        route: route.label,
+        method: route.method,
+        status: 0,
+        code: "NETWORK_ERROR",
+        error: String(error?.cause?.code || error?.message || "NETWORK_ERROR").slice(0, 100)
+      });
     }
   }
   return res.status(200).json({ ok: true, basePath: new URL(base).pathname, results });
