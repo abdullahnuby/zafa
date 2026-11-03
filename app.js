@@ -316,6 +316,7 @@ function adminErrorMessage(error){
   DRIVER_NOT_VERIFIED_OR_INACTIVE:"السائق غير موثق أو غير نشط.",
   VEHICLE_PHOTO_REQUIRED:"أضف صورة رئيسية للسيارة قبل نشرها.",
   VEHICLE_DOCUMENTS_PENDING:"هناك مستندات سيارة لم تتم مراجعتها بعد.",
+  VEHICLE_LICENSE_AND_INSURANCE_REQUIRED:"يجب إضافة ترخيص المركبة ووثيقة التأمين واعتمادهما قبل النشر.",
   DUPLICATE_PLATE_NUMBER:"رقم اللوحة مسجل لسيارة أخرى.",
   DRIVER_SCHEDULE_CONFLICT:"السائق لديه مهمة أخرى تتعارض مع هذا الموعد.",
   AVAILABILITY_CONFLICT:"الفترة تتعارض مع فترة حظر أو موعد موجود.",
