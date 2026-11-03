@@ -185,7 +185,8 @@ let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=n
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
 async function getAuthToken(sessionToken=null){
  if(typeof sessionToken==="string"&&sessionToken.length>20)return sessionToken;
- const result=await authClient.token?.();
+ if(typeof authClient.token!=="function")throw new Error("AUTH_TOKEN_METHOD_UNAVAILABLE");
+ const result=await authClient.token();
  if(result?.error){
   const error=new Error(result.error.message||result.error.code||"AUTH_TOKEN_FAILED");
   error.status=result.error.status||result.error.statusCode||0;
