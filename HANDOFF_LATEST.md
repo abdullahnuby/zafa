@@ -27,8 +27,6 @@ The browser took `authData.session.token` from the Better Auth sign-in response 
 
 ## Verification results
 
-<badge-placeholder />
-
 - **GitHub Actions run #64: SUCCESS.** JavaScript syntax checks passed and `npm test` passed **29/29 tests**, with 0 failures and 0 skipped tests.
 - The first run for the code commit exposed a malformed regular-expression assertion in the new test (the application syntax check passed). The test assertion was simplified and corrected in the following commit; the complete run #64 then passed.
 - **Vercel production deployment: READY.** Deployment `dpl_FNooLdgPF45BjxFiKnRLhszCCBDH` points to fix commit `3e20ea0b26b8039e55d5a265db332328168886f9` and has the production alias `zafa-orcin.vercel.app`.
