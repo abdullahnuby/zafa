@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [productize/brand-payments-auth]
+    branches: [productize/brand-payments-auth, main]
 jobs:
   syntax-and-tests:
     runs-on: ubuntu-latest
@@ -17,6 +17,7 @@ jobs:
         run: |
           node --check app.js
           node --check booking-rules.mjs
+          node --check sw.js
           find api lib -type f -name '*.js' -print0 | xargs -0 -n 1 node --check
       - name: Unit tests
         run: npm test
