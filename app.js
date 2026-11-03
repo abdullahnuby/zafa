@@ -1012,40 +1012,6 @@ async function setAdminVehiclePrimaryPhoto(vehicleId,mediaId){
   toast("تم تعيين الصورة الرئيسية",true);
  }catch(error){toast(adminErrorMessage(error));}
 }
-async function saveCar(){
- const f=document.querySelector("#add-car-form");if(!f?.reportValidity())return;
- const d=new FormData(f);
- const photos=d.getAll("photos").filter(file=>file&&file.size>0);
- if(!validateVehiclePhotoFiles(photos,1,3))return;
- const ownerId=String(d.get("ownerId")||"");
- const schedule=[...f.querySelectorAll('input[name="weekdays"]:checked')].map(el=>({weekday:Number(el.value),startTime:d.get("startTime"),endTime:d.get("endTime")}));
- if(!schedule.length)return toast("اختر يومًا واحدًا على الأقل للإتاحة");
- if(d.get("startTime")>=d.get("endTime"))return toast("وقت البداية يجب أن يسبق وقت النهاية");
- const documents=[];
- if(d.get("registrationUrl"))documents.push({documentType:"vehicle_license",url:d.get("registrationUrl"),expiresOn:d.get("registrationExpiry")||null});
- if(d.get("insuranceUrl"))documents.push({documentType:"insurance",url:d.get("insuranceUrl"),expiresOn:d.get("insuranceExpiry")||null});
- let createdVehicleId=null;
- try{
-  const result=await adminApiRequest("/api/v1/admin/vehicles","POST",{
-   ownerId:ownerId==="__company__"?null:ownerId,
-   companyFleet:ownerId==="__company__",
-   make:d.get("make"),model:d.get("model"),modelYear:Number(d.get("modelYear")),
-   plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),transmission:d.get("transmission"),
-   serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
-   prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")},
-   schedule,documents,submitForReview:true
-  });
-  createdVehicleId=result.vehicle.id;
-  await uploadVehiclePhotos(createdVehicleId,photos);
-  closeModal();await loadAdminFleet();await refreshVehicleCatalog();go("admin-vehicles");
-  toast("تم حفظ السيارة ورفع الصور بنجاح",true);
- }catch(e){
-  if(createdVehicleId){
-   closeModal();await loadAdminFleet();go("admin-vehicles");
-   toast("تم حفظ السيارة، لكن رفع الصور لم يكتمل. افتح السيارة وأعد إضافة الصور.");
-  }else toast(adminErrorMessage(e));
- }
-}
 function editCar(id){
  const v=adminFleet.vehicles.find(x=>x.id===id);if(!v)return;
  const p=v.package_prices||{};
