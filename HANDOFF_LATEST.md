@@ -32,9 +32,9 @@ The customer can pass the password check, but the profile API rejects the bearer
 
 ## Verification status
 
-- The isolated issuer-origin change reached production on commit `661ff782afa5e556bd247af6a2c292bd7bd6cd83`, and its GitHub quality workflow and Vercel deployment both succeeded.
-- The subsequent client/session-token correction and PWA cache invalidation are committed separately. Their latest GitHub Actions run and Vercel deployment must be checked before the site is declared fully verified.
-- No live sign-in using the customer's private credentials has been performed by this integration. The final real-account check must still be completed in the customer's browser.
+- **GitHub Actions run #75: SUCCESS.** JavaScript syntax checks passed and `npm test` passed **31/31 tests**, with 0 failures and 0 skipped tests: https://github.com/abdullahnuby/zafa/actions/runs/41699881760
+- **Vercel production deployment: READY.** Deployment `dpl_DP4jgHDxVdzgDKTXPz31TJNyLNM3` points to commit `3178e4744890d729a4ce1b1ec41036fce4a92f01` and received the production alias `zafa-orcin.vercel.app`.
+- The CI run validates the corrected JWT issuer, SDK-injected session JWT path, and session restoration. No live sign-in using the customer's private credentials has been performed by this integration; the final real-account check still needs the customer's browser.
 
 ## Remaining launch gates
 
