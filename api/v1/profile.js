@@ -1,18 +1,18 @@
 import { getPool } from "../../lib/db.js";
 import { requireIdentity, sendApiError } from "../../lib/auth.js";
 
-function normalizeEgyptianPhone(value) {
-  const raw = String(value || "").replace(/\\D/g, "");
+export function normalizeEgyptianPhone(value) {
+  const raw = String(value || "").replace(/\D/g, "");
   let digits = raw;
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (digits.startsWith("20")) {}
   else if (digits.startsWith("0")) digits = "2" + digits;
   else digits = "20" + digits;
   const normalized = "+" + digits;
-  return /^\\+201[0125]\\d{8}$/.test(normalized) ? normalized : null;
+  return /^\+201[0125]\d{8}$/.test(normalized) ? normalized : null;
 }
 function response(row) {
-  return { id: row.id, displayName: row.display_name, phone: row.phone_e164, email: row.email, roles: row.roles || ["customer"] };
+  return { id: row.id, displayName: row.display_name, phone: row.phone_e164, email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email, roles: row.roles || ["customer"] };
 }
 async function loadProfile(authUserId) {
   const { rows } = await getPool().query(

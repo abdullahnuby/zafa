@@ -1,35 +1,50 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { normalizeEgyptianPhone } from "../api/v1/profile.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
-const [app, shell, worker] = await Promise.all([
+const [app, shell, worker, profileApi] = await Promise.all([
   read("../app.js"),
   read("../index.html"),
-  read("../sw.js")
+  read("../sw.js"),
+  read("../api/v1/profile.js")
 ]);
 
 test("public website shell has no demo mode or customer role switcher", () => {
   assert.doesNotMatch(shell, /role-switcher|demo-chip|وضع تجريبي/);
-  assert.match(shell, /id="app-content"/);
+  assert.ok(shell.includes('id="app-content"'));
 });
 
 test("guest visitors can browse and authentication is gated at booking intent", () => {
-  assert.match(app, /تقدر تتصفح زفّة من غير تسجيل دخول/);
-  assert.match(app, /function openBooking\(id\)\{[\s\S]*?if\(!authSession\?\.user\)\{pendingBookingCarId=id;openAuthModal\("signin"\);return;\}/);
-  assert.match(app, /function showBookingUnavailable\(id\)/);
+  assert.ok(app.includes("تقدر تتصفح زفّة من غير حساب"));
+  assert.ok(app.includes('if(!authSession?.user){pendingBookingCarId=id;openAuthModal("signin");return;}'));
+  assert.ok(app.includes("function showBookingUnavailable(id)"));
 });
 
-test("new customer registration collects contact phone in the same form", () => {
-  assert.match(app, /name="phone" type="tel"/);
-  assert.match(app, /name="email" type="email"/);
-  assert.match(app, /name="password" type="password"/);
+test("customer registration and sign-in use phone and password without an email field", () => {
+  assert.ok(app.includes('name="phone" type="tel"'));
+  assert.ok(app.includes('name="password" type="password"'));
+  assert.ok(!app.includes('name="email" type="email"'));
+  assert.ok(app.includes("function internalAuthEmail(phone)"));
+  assert.ok(app.includes("@phone.zaffa.invalid"));
+  assert.ok(app.includes("authClient.signIn.email({email:authEmail,password})"));
+  assert.ok(profileApi.includes('email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email'));
+});
+
+test("Egyptian mobile numbers normalize consistently for customer identities", () => {
+  assert.equal(normalizeEgyptianPhone("01012345678"), "+201012345678");
+  assert.equal(normalizeEgyptianPhone("01112345678"), "+201112345678");
+  assert.equal(normalizeEgyptianPhone("+20 12 1234 5678"), "+201212345678");
+  assert.equal(normalizeEgyptianPhone("01512345678"), "+201512345678");
+  assert.equal(normalizeEgyptianPhone("01912345678"), null);
+  assert.equal(normalizeEgyptianPhone("123"), null);
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
-  assert.match(worker, /zaffa-shell-v3/);
-  assert.match(worker, /key\.startsWith\("zaffa-shell-"\)/);
-  assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
-  assert.match(worker, /cache: "no-store"/);
-  assert.match(worker, /client\.navigate\(client\.url\)/);
+  assert.ok(worker.includes("zaffa-shell-v3"));
+  assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
+  assert.ok(worker.includes('url.pathname.startsWith("/api/")'));
+  assert.ok(worker.includes('cache: "no-store"'));
+  assert.ok(worker.includes("client.navigate(client.url)"));
 });
