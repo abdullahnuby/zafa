@@ -281,10 +281,6 @@ document.addEventListener('click',event=>{
 
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeModal();});
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
- const hadController=Boolean(navigator.serviceWorker.controller);
- navigator.serviceWorker.addEventListener("controllerchange",()=>{
-  if(hadController&&!window.__zaffaSwReloaded){window.__zaffaSwReloaded=true;location.reload();}
- });
  navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
 }
 render();
