@@ -171,13 +171,13 @@ export default async function handler(req, res) {
       }
       if (status === "verified") {
         const docs = await client.query(
-          `SELECT document_type, expires_on, review_status
+          `SELECT document_type, expires_on, review_status,
+                  (expires_on IS NULL OR expires_on >= current_date) AS not_expired
              FROM public.driver_documents
             WHERE driver_id=$1::uuid`,
           [id]
         );
-        const valid = docs.rows.filter(doc => doc.review_status === "approved" &&
-          (!doc.expires_on || new Date(doc.expires_on) >= new Date()));
+        const valid = docs.rows.filter(doc => doc.review_status === "approved" && doc.not_expired);
         const types = new Set(valid.map(doc => doc.document_type));
         if (!types.has("driving_license") || !types.has("national_id")) {
           throw new ApiError(409, "DRIVER_DOCUMENTS_REQUIRED");
