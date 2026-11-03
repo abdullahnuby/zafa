@@ -530,9 +530,312 @@ function bookingDetails(id){const b=bookingById(id);if(!b)return;const c=carById
 function ownerAccept(id){const b=bookingById(id);if(!b)return;const next='awaiting_payment';try{assertBookingTransition(b.status,next);}catch{return toast('حالة الطلب لا تسمح بالقبول');}b.status=next;persist();closeModal();render();toast(b.status==='confirmed'?'تم قبول الطلب — لم يتم تعيين سائق بعد':'تم قبول الطلب — ينتظر استكمال الدفع التجريبي',true);}
 function simulatePayment(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'confirmed');}catch{return toast('لا يمكن تأكيد الدفع لهذه الحالة');}b.paymentState='paid_simulated';b.status='confirmed';persist();closeModal();render();toast('تم تحديث حالة الدفع كمحاكاة فقط — لا توجد معاملة مالية',true);}
 function assignDriver(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'driver_assigned');}catch{return toast('لا يمكن تعيين سائق قبل تأكيد الحجز');}b.driverId='driver1';b.status='driver_assigned';persist();closeModal();render();toast('تم إسناد السائق التجريبي للحجز',true);}
-function addCar(){const body=`<form id="add-car-form"><div class="modal-grid"><div class="field"><label>الماركة</label><input name="brand" required placeholder="Mercedes-Benz"></div><div class="field"><label>الموديل</label><input name="model" required placeholder="E-Class"></div><div class="field"><label>سنة الصنع</label><input name="year" type="number" min="2000" max="2035" required value="2022"></div><div class="field"><label>رقم اللوحة</label><input name="plate" required placeholder="أ ق ص ١٢٣٤"></div><div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option></select></div><div class="field"><label>المنطقة</label><select name="zone"><option>الأقصر</option><option>الأقصر والكرنك</option><option>الأقصر والبياضية</option><option>الأقصر والقرنة</option></select></div><div class="field"><label>سعر باقة ميني</label><input name="mini" type="number" required value="1500"></div><div class="field"><label>سعر باقة كلاسيك</label><input name="classic" type="number" required value="2100"></div></div><div class="notice warning">سيتم حفظ السيارة كطلب اعتماد تجريبي. لا ترفع مستندات أو بيانات شخصية في هذه النسخة.</div></form>`;openModal('إضافة سيارة جديدة',body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);}
-function saveCar(){const f=document.querySelector('#add-car-form');if(!f?.reportValidity())return;const d=new FormData(f);const id=`car${Date.now()}`;state.cars.push({id,brand:d.get('brand'),model:d.get('model'),year:Number(d.get('year')),color:'silver',plate:d.get('plate'),seats:Number(d.get('seats')),transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner1',zone:d.get('zone'),packagePrices:{mini:Number(d.get('mini')),classic:Number(d.get('classic')),wedding:Number(d.get('classic'))*1.55,royal:Number(d.get('classic'))*1.95},rating:0,reviews:0,approval:'pending',features:['تحتاج مراجعة'],driverIncluded:true});persist();closeModal();render();toast('تم حفظ السيارة في قائمة انتظار الاعتماد التجريبية',true);}
-function editCar(id){const c=carById(id);if(!c)return;openModal('بيانات السيارة',`<div class="notice">${escapeHtml(c.brand)} ${escapeHtml(c.model)} — ${escapeHtml(c.plate)}</div><p style="font-size:11px;color:#77848a">تحرير الأسعار والمعلومات سيتم توسيعه بعد اعتماد نموذج السيارة والمستندات.</p>`,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);}
+function addCar(){
+ const ownerOptions=(adminFleet.owners||[]).map(o=>`<option value="${o.id}">${escapeHtml(o.display_name)} — ${escapeHtml(o.legal_name)}</option>`).join("");
+ const body=`<form id="add-car-form">
+  <div class="admin-form-section"><b>بيانات السيارة والمالك</b><div class="modal-grid">
+   <div class="field"><label>المالك</label><select name="ownerId" required><option value="">اختر المالك</option><option value="__company__">أسطول زفّة</option>${ownerOptions}</select></div>
+   <div class="field"><label>الماركة</label><input name="make" required maxlength="80" placeholder="Mercedes-Benz"></div>
+   <div class="field"><label>الموديل / الفئة</label><input name="model" required maxlength="100" placeholder="E-Class"></div>
+   <div class="field"><label>سنة الصنع</label><input name="modelYear" type="number" min="1990" max="2100" required value="2022"></div>
+   <div class="field"><label>رقم اللوحة</label><input name="plateNumber" required maxlength="40" placeholder="أ ق ص ١٢٣٤"></div>
+   <div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option><option>8</option></select></div>
+   <div class="field"><label>ناقل الحركة</label><select name="transmission"><option>أوتوماتيك</option><option>مانيوال</option></select></div>
+   <div class="field"><label>مناطق الخدمة</label><input name="zones" required value="وسط الأقصر، الكرنك، العوامية" placeholder="افصل بين المناطق بفاصلة"></div>
+   <div class="field field-wide"><label>رابط الصورة الرئيسية (HTTPS)</label><input name="imageUrl" type="url" required placeholder="https://..."></div>
+  </div></div>
+  <div class="admin-form-section"><b>أسعار الباقات بالجنيه</b><div class="modal-grid">
+   <div class="field"><label>ميني</label><input name="mini" type="number" min="0" step="1" value="1500"></div>
+   <div class="field"><label>كلاسيك — مطلوب</label><input name="classic" type="number" min="1" step="1" required value="2100"></div>
+   <div class="field"><label>زفاف</label><input name="wedding" type="number" min="0" step="1" value="3200"></div>
+   <div class="field"><label>رويال</label><input name="royal" type="number" min="0" step="1" value="4200"></div>
+  </div></div>
+  <div class="admin-form-section"><b>مواعيد الإتاحة الأسبوعية — توقيت القاهرة</b>
+   <div class="weekday-picker">${["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"].map((day,i)=>`<label><input type="checkbox" name="weekdays" value="${i}" checked><span>${day}</span></label>`).join("")}</div>
+   <div class="modal-grid"><div class="field"><label>من الساعة</label><input name="startTime" type="time" value="08:00" required></div><div class="field"><label>إلى الساعة</label><input name="endTime" type="time" value="23:00" required></div></div>
+  </div>
+  <div class="admin-form-section"><b>مستندات السيارة (روابط HTTPS)</b><div class="modal-grid">
+   <div class="field"><label>رابط الترخيص</label><input name="registrationUrl" type="url" placeholder="رابط ملف الترخيص"></div>
+   <div class="field"><label>انتهاء الترخيص</label><input name="registrationExpiry" type="date"></div>
+   <div class="field"><label>رابط التأمين</label><input name="insuranceUrl" type="url" placeholder="رابط وثيقة التأمين"></div>
+   <div class="field"><label>انتهاء التأمين</label><input name="insuranceExpiry" type="date"></div>
+  </div></div>
+  <div class="notice warning">السيارة ستُحفظ في انتظار الاعتماد، ولن تظهر للعميل إلا بعد اعتماد المالك ومراجعة المستندات والصورة والضغط على «اعتماد ونشر».</div>
+ </form>`;
+ openModal("إضافة سيارة جديدة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);
+}
+async function saveCar(){
+ const f=document.querySelector("#add-car-form");if(!f?.reportValidity())return;
+ const d=new FormData(f);
+ const ownerId=String(d.get("ownerId")||"");
+ const schedule=[...f.querySelectorAll('input[name="weekdays"]:checked')].map(el=>({weekday:Number(el.value),startTime:d.get("startTime"),endTime:d.get("endTime")}));
+ if(!schedule.length)return toast("اختر يومًا واحدًا على الأقل للإتاحة");
+ if(d.get("startTime")>=d.get("endTime"))return toast("وقت البداية يجب أن يسبق وقت النهاية");
+ const documents=[];
+ if(d.get("registrationUrl"))documents.push({documentType:"vehicle_license",url:d.get("registrationUrl"),expiresOn:d.get("registrationExpiry")||null});
+ if(d.get("insuranceUrl"))documents.push({documentType:"insurance",url:d.get("insuranceUrl"),expiresOn:d.get("insuranceExpiry")||null});
+ try{
+  const result=await adminApiRequest("/api/v1/admin/vehicles","POST",{
+   ownerId:ownerId==="__company__"?null:ownerId,
+   companyFleet:ownerId==="__company__",
+   make:d.get("make"),model:d.get("model"),modelYear:Number(d.get("modelYear")),
+   plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),transmission:d.get("transmission"),
+   serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
+   imageUrl:d.get("imageUrl"),
+   prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")},
+   schedule,documents,submitForReview:true
+  });
+  closeModal();await loadAdminFleet();await refreshVehicleCatalog();go("admin-vehicles");
+  toast("تم حفظ السيارة في قائمة مراجعة الإدارة",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function editCar(id){
+ const v=adminFleet.vehicles.find(x=>x.id===id);if(!v)return;
+ const p=v.package_prices||{};
+ const body=`<form id="edit-car-form" data-id="${v.id}"><div class="modal-grid">
+  <div class="field"><label>الماركة</label><input name="make" value="${escapeHtml(v.make)}" required></div>
+  <div class="field"><label>الموديل</label><input name="model" value="${escapeHtml(v.model)}" required></div>
+  <div class="field"><label>سنة الصنع</label><input name="modelYear" type="number" min="1990" max="2100" value="${v.model_year}" required></div>
+  <div class="field"><label>رقم اللوحة</label><input name="plateNumber" value="${escapeHtml(v.plate_number)}" required></div>
+  <div class="field"><label>عدد المقاعد</label><input name="seats" type="number" min="2" max="12" value="${v.seats}" required></div>
+  <div class="field"><label>ناقل الحركة</label><input name="transmission" value="${escapeHtml(v.transmission||"") }"></div>
+  <div class="field field-wide"><label>مناطق الخدمة — افصل بفاصلة</label><input name="zones" value="${escapeHtml((v.service_zones||[]).join("، "))}" required></div>
+  <div class="field field-wide"><label>رابط الصورة الرئيسية</label><input name="imageUrl" type="url" value="${escapeHtml(v.image_url||"")}"></div>
+  <div class="field"><label>ميني</label><input name="mini" type="number" min="0" value="${Number(p.mini||0)}"></div>
+  <div class="field"><label>كلاسيك</label><input name="classic" type="number" min="1" value="${Number(p.classic||0)}"></div>
+  <div class="field"><label>زفاف</label><input name="wedding" type="number" min="0" value="${Number(p.wedding||0)}"></div>
+  <div class="field"><label>رويال</label><input name="royal" type="number" min="0" value="${Number(p.royal||0)}"></div>
+ </div></form><div class="notice">تعديل بيانات السيارة لا يغيّر حالة الاعتماد. تعديل الصورة يستبدل الصورة الرئيسية المنشورة.</div>`;
+ openModal("تعديل بيانات السيارة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car-update">حفظ التعديلات</button>`);
+}
+async function saveCarUpdate(){
+ const f=document.querySelector("#edit-car-form");if(!f?.reportValidity())return;
+ const d=new FormData(f);
+ try{
+  await adminApiRequest("/api/v1/admin/vehicles","PATCH",{
+   action:"update",vehicleId:f.dataset.id,make:d.get("make"),model:d.get("model"),
+   modelYear:Number(d.get("modelYear")),plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),
+   transmission:d.get("transmission"),serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
+   imageUrl:d.get("imageUrl"),
+   prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")}
+  });
+  closeModal();await loadAdminFleet();await refreshVehicleCatalog();render();toast("تم تحديث بيانات السيارة والأسعار",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function decideVehicle(id,decision){
+ const prompts={approved:"اعتماد ونشر السيارة للعملاء؟",rejected:"تأكيد رفض السيارة؟",suspended:"إيقاف ظهور السيارة للعملاء؟"};
+ if(!confirm(prompts[decision]||"تأكيد الإجراء؟"))return;
+ try{
+  await adminApiRequest("/api/v1/admin/vehicles","PATCH",{action:"decision",vehicleId:id,decision});
+  await loadAdminFleet();await refreshVehicleCatalog();render();
+  toast(decision==="approved"?"تم اعتماد السيارة ونشرها في الكتالوج":decision==="suspended"?"تم إيقاف النشر":"تم رفض السيارة",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function createAuthPerson(name,phone,password){
+ if(typeof authClient?.admin?.createUser!=="function")throw new Error("ADMIN_CREATE_USER_UNAVAILABLE");
+ const result=await authClient.admin.createUser({email:internalAuthEmail(phone),password,name,role:"user"});
+ if(result?.error)throw result.error;
+ const user=result?.data?.user||result?.user||null;
+ if(!user?.id)throw new Error("AUTH_USER_CREATION_UNCONFIRMED");
+ return user;
+}
+function showTemporaryPassword(title,name,phone,password){
+ const body=`<div class="notice good">تم إنشاء الحساب وربطه بملف زفّة. سلّم كلمة المرور المؤقتة لصاحب الحساب عبر وسيلة آمنة، واطلب منه تغييرها عند أول استخدام.</div>
+ <div class="profile-card"><div><b>${escapeHtml(name)}</b><small dir="ltr">${escapeHtml(phone)}</small></div></div>
+ <div class="field"><label>كلمة المرور المؤقتة</label><input id="created-temp-password" value="${escapeHtml(password)}" readonly dir="ltr"></div>
+ <button class="btn btn-outline" data-action="copy-admin-password">نسخ كلمة المرور</button>`;
+ openModal(title,body,`<button class="btn btn-primary" data-action="close-modal">تم</button>`);
+}
+function addOwner(){
+ const body=`<form id="add-owner-form">
+  <input type="hidden" name="authUserId">
+  <div class="modal-grid">
+   <div class="field"><label>اسم المالك</label><input name="displayName" required minlength="2" maxlength="80"></div>
+   <div class="field"><label>رقم الموبايل</label><input name="phone" required type="tel" inputmode="tel" placeholder="01012345678" dir="ltr"></div>
+   <div class="field"><label>الاسم القانوني / اسم الشركة</label><input name="legalName" required maxlength="150"></div>
+   <div class="field"><label>نوع الشراكة</label><select name="ownerKind"><option value="independent_owner">مالك مستقل</option><option value="fleet_partner">شريك أسطول</option><option value="premium_partner">شريك مميز</option></select></div>
+   <div class="field field-wide"><label>كلمة مرور مؤقتة</label><input name="password" type="text" required minlength="8" autocomplete="new-password" value="${crypto.randomUUID().replace(/-/g,"").slice(0,14)}"></div>
+   <div class="field field-wide"><label>رابط العقد الموقّع (HTTPS)</label><input name="contractUrl" type="url" required placeholder="رابط نسخة العقد الموقّع"></div>
+   <div class="field"><label>نسخة العقد</label><input name="contractVersion" value="ZAFFA-OWNER-1" required></div>
+   <div class="field"><label>بداية العقد</label><input name="validFrom" type="date"></div>
+   <div class="field"><label>نهاية العقد</label><input name="validTo" type="date"></div>
+  </div>
+  <div class="notice warning">سينشئ النظام حساب دخول بكلمة المرور المؤقتة، ثم يربطه بملف المالك. يظل المالك «بانتظار الاعتماد» حتى مراجعة العقد واعتماده.</div>
+ </form>`;
+ openModal("إضافة مالك / شريك",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-owner">إنشاء الحساب والملف</button>`);
+}
+async function saveOwner(){
+ const f=document.querySelector("#add-owner-form");if(!f?.reportValidity())return;
+ const d=new FormData(f),phone=normalizeCustomerPhone(d.get("phone"));
+ if(!phone)return toast("رقم الموبايل المصري غير صحيح");
+ const password=String(d.get("password")||"");
+ try{
+  let authUserId=String(d.get("authUserId")||"");
+  if(!authUserId){
+   const authUser=await createAuthPerson(String(d.get("displayName")).trim(),phone,password);
+   authUserId=authUser.id;f.elements.authUserId.value=authUserId;
+  }
+  const created=await adminApiRequest("/api/v1/admin/people","POST",{
+   kind:"owner",authUserId,phone,displayName:d.get("displayName"),legalName:d.get("legalName"),ownerKind:d.get("ownerKind")
+  });
+  await adminApiRequest("/api/v1/admin/documents","POST",{
+   entityType:"owner",entityId:created.person.id,documentType:"contract",url:d.get("contractUrl"),
+   contractVersion:d.get("contractVersion")||"ZAFFA-OWNER-1",validFrom:d.get("validFrom")||null,validTo:d.get("validTo")||null
+  });
+  closeModal();await loadAdminFleet();render();
+  showTemporaryPassword("تم إنشاء حساب المالك",d.get("displayName"),phone,password);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function addDriver(){
+ const body=`<form id="add-driver-form">
+  <input type="hidden" name="authUserId">
+  <div class="modal-grid">
+   <div class="field"><label>اسم السائق</label><input name="displayName" required minlength="2" maxlength="80"></div>
+   <div class="field"><label>رقم الموبايل</label><input name="phone" required type="tel" inputmode="tel" placeholder="01012345678" dir="ltr"></div>
+   <div class="field field-wide"><label>كلمة مرور مؤقتة</label><input name="password" type="text" required minlength="8" autocomplete="new-password" value="${crypto.randomUUID().replace(/-/g,"").slice(0,14)}"></div>
+   <div class="field field-wide"><label>رابط رخصة القيادة (HTTPS)</label><input name="licenseUrl" type="url" required placeholder="رابط صورة أو ملف الرخصة"></div>
+   <div class="field"><label>انتهاء رخصة القيادة</label><input name="licenseExpiry" type="date" required></div>
+   <div class="field field-wide"><label>رابط البطاقة الشخصية (HTTPS)</label><input name="nationalIdUrl" type="url" required placeholder="رابط صورة أو ملف البطاقة"></div>
+   <div class="field"><label>انتهاء البطاقة (إن وجد)</label><input name="nationalIdExpiry" type="date"></div>
+  </div>
+  <div class="notice warning">يُنشأ ملف السائق بحالة «بانتظار التحقق». لا يمكن إسناد مهام له قبل مراجعة واعتماد الرخصة والبطاقة وتفعيل السائق.</div>
+ </form>`;
+ openModal("إضافة سائق جديد",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-driver">إنشاء الحساب والملف</button>`);
+}
+async function saveDriver(){
+ const f=document.querySelector("#add-driver-form");if(!f?.reportValidity())return;
+ const d=new FormData(f),phone=normalizeCustomerPhone(d.get("phone"));
+ if(!phone)return toast("رقم الموبايل المصري غير صحيح");
+ const password=String(d.get("password")||"");
+ try{
+  let authUserId=String(d.get("authUserId")||"");
+  if(!authUserId){
+   const authUser=await createAuthPerson(String(d.get("displayName")).trim(),phone,password);
+   authUserId=authUser.id;f.elements.authUserId.value=authUserId;
+  }
+  const created=await adminApiRequest("/api/v1/admin/people","POST",{
+   kind:"driver",authUserId,phone,displayName:d.get("displayName")
+  });
+  await adminApiRequest("/api/v1/admin/documents","POST",{
+   entityType:"driver",entityId:created.person.id,documentType:"driving_license",
+   url:d.get("licenseUrl"),expiresOn:d.get("licenseExpiry")
+  });
+  await adminApiRequest("/api/v1/admin/documents","POST",{
+   entityType:"driver",entityId:created.person.id,documentType:"national_id",
+   url:d.get("nationalIdUrl"),expiresOn:d.get("nationalIdExpiry")||null
+  });
+  closeModal();await loadAdminFleet();render();
+  showTemporaryPassword("تم إنشاء حساب السائق",d.get("displayName"),phone,password);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function addPersonDocument(kind,id){
+ const driver=kind==="driver";
+ const body=`<form id="person-document-form" data-kind="${kind}" data-id="${id}">
+  <div class="field"><label>نوع المستند</label><select name="documentType">${driver?'<option value="driving_license">رخصة قيادة</option><option value="national_id">بطاقة شخصية</option><option value="other">مستند آخر</option>':'<option value="contract">عقد شراكة</option>'}</select></div>
+  <div class="field"><label>رابط المستند HTTPS</label><input name="url" type="url" required></div>
+  <div class="field"><label>تاريخ الانتهاء (إن وجد)</label><input name="expiresOn" type="date"></div>
+  ${!driver?'<div class="field"><label>نسخة العقد</label><input name="contractVersion" value="ZAFFA-OWNER-1"></div>':""}
+ </form>`;
+ openModal(driver?"إضافة مستند للسائق":"إضافة عقد للمالك",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-person-document">حفظ المستند</button>`);
+}
+async function savePersonDocument(){
+ const f=document.querySelector("#person-document-form");if(!f?.reportValidity())return;
+ const d=new FormData(f),kind=f.dataset.kind;
+ try{
+  await adminApiRequest("/api/v1/admin/documents","POST",{
+   entityType:kind,entityId:f.dataset.id,documentType:d.get("documentType"),url:d.get("url"),
+   expiresOn:d.get("expiresOn")||null,contractVersion:d.get("contractVersion")||"ZAFFA-OWNER-1"
+  });
+  closeModal();await loadAdminFleet();render();toast("تم حفظ المستند في قائمة المراجعة",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function updatePersonStatus(kind,id,status,active){
+ if(!confirm(status==="approved"?"اعتماد ملف المالك؟":status==="verified"?"تأكيد توثيق السائق؟":"تأكيد تحديث حالة الملف؟"))return;
+ try{
+  await adminApiRequest("/api/v1/admin/people","PATCH",{kind,id,status,active});
+  await loadAdminFleet();render();toast("تم تحديث حالة الملف",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function reviewAdminDocument(kind,id,decision){
+ if(!confirm(decision==="approve"?"اعتماد المستند؟":"رفض المستند؟"))return;
+ try{
+  await adminApiRequest("/api/v1/admin/documents","PATCH",{entityType:kind,documentId:id,decision});
+  await loadAdminFleet();render();toast(decision==="approve"?"تم اعتماد المستند":"تم رفض المستند",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function addVehicleDocument(id){
+ const body=`<form id="vehicle-document-form" data-id="${id}">
+  <div class="field"><label>نوع المستند</label><select name="documentType"><option value="vehicle_license">ترخيص المركبة</option><option value="insurance">وثيقة التأمين</option><option value="ownership">إثبات الملكية</option><option value="other">مستند آخر</option></select></div>
+  <div class="field"><label>رابط المستند HTTPS</label><input name="url" type="url" required></div>
+  <div class="field"><label>تاريخ الانتهاء</label><input name="expiresOn" type="date"></div>
+ </form>`;
+ openModal("إضافة مستند للسيارة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-vehicle-document">حفظ المستند</button>`);
+}
+async function saveVehicleDocument(){
+ const f=document.querySelector("#vehicle-document-form");if(!f?.reportValidity())return;
+ const d=new FormData(f);
+ try{
+  await adminApiRequest("/api/v1/admin/documents","POST",{
+   entityType:"vehicle",entityId:f.dataset.id,documentType:d.get("documentType"),url:d.get("url"),expiresOn:d.get("expiresOn")||null
+  });
+  closeModal();await loadAdminFleet();render();toast("تم حفظ المستند للمراجعة",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function addVehicleRule(vehicleId=null){
+ const options=(adminFleet.vehicles||[]).map(v=>`<option value="${v.id}" ${v.id===vehicleId?"selected":""}>${escapeHtml(v.make)} ${escapeHtml(v.model)} — ${escapeHtml(v.plate_number)}</option>`).join("");
+ const body=`<form id="availability-rule-form">
+  <div class="field"><label>السيارة</label><select name="vehicleId" required>${options}</select></div>
+  <div class="weekday-picker">${["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"].map((day,i)=>`<label><input type="checkbox" name="weekdays" value="${i}" ${[0,1,2,3,4,5,6].includes(i)?"checked":""}><span>${day}</span></label>`).join("")}</div>
+  <div class="modal-grid"><div class="field"><label>من الساعة</label><input name="startTime" type="time" value="08:00" required></div><div class="field"><label>إلى الساعة</label><input name="endTime" type="time" value="23:00" required></div>
+   <div class="field"><label>ساري من</label><input name="validFrom" type="date"></div><div class="field"><label>ساري حتى</label><input name="validTo" type="date"></div>
+  </div>
+ </form>`;
+ openModal("إضافة جدول إتاحة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-rule">حفظ الجدول</button>`);
+}
+async function saveAvailabilityRule(){
+ const f=document.querySelector("#availability-rule-form");if(!f?.reportValidity())return;
+ const d=new FormData(f),weekdays=[...f.querySelectorAll('input[name="weekdays"]:checked')].map(x=>Number(x.value));
+ if(!weekdays.length)return toast("حدد يومًا واحدًا على الأقل");
+ try{
+  await adminApiRequest("/api/v1/admin/availability","POST",{
+   kind:"rule",vehicleId:d.get("vehicleId"),weekdays,startTime:d.get("startTime"),endTime:d.get("endTime"),
+   validFrom:d.get("validFrom")||null,validTo:d.get("validTo")||null
+  });
+  closeModal();await loadAdminFleet();render();toast("تم حفظ جدول الإتاحة",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+function addAvailabilityBlock(){
+ const options=(adminFleet.vehicles||[]).map(v=>`<option value="${v.id}">${escapeHtml(v.make)} ${escapeHtml(v.model)} — ${escapeHtml(v.plate_number)}</option>`).join("");
+ const body=`<form id="availability-block-form">
+  <div class="field"><label>السيارة</label><select name="vehicleId" required>${options}</select></div>
+  <div class="field"><label>بداية الحظر</label><input name="startsAt" type="datetime-local" required></div>
+  <div class="field"><label>نهاية الحظر</label><input name="endsAt" type="datetime-local" required></div>
+  <div class="field"><label>السبب</label><input name="reason" required maxlength="240" placeholder="صيانة، إجازة، عدم توافر"></div>
+ </form>`;
+ openModal("حظر فترة زمنية",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-block">حفظ الحظر</button>`);
+}
+async function saveAvailabilityBlock(){
+ const f=document.querySelector("#availability-block-form");if(!f?.reportValidity())return;
+ const d=new FormData(f);
+ try{
+  await adminApiRequest("/api/v1/admin/availability","POST",{
+   kind:"block",vehicleId:d.get("vehicleId"),
+   startsAt:new Date(d.get("startsAt")).toISOString(),endsAt:new Date(d.get("endsAt")).toISOString(),reason:d.get("reason")
+  });
+  closeModal();await loadAdminFleet();render();toast("تم حظر الفترة الزمنية",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function deleteAvailability(kind,id){
+ if(!confirm(kind==="block"?"إلغاء فترة الحظر؟":"حذف قاعدة الإتاحة؟"))return;
+ try{
+  await adminApiRequest("/api/v1/admin/availability","DELETE",{kind,id});
+  await loadAdminFleet();render();toast("تم تحديث جدول التوافر",true);
+ }catch(e){toast(adminErrorMessage(e));}
+}
+async function copyAdminPassword(){
+ const input=document.querySelector("#created-temp-password");if(!input)return;
+ try{await navigator.clipboard.writeText(input.value);toast("تم نسخ كلمة المرور المؤقتة",true);}catch{input.select();toast("حدد كلمة المرور وانسخها يدويًا");}
+}
 
 document.addEventListener('click',event=>{
  const btn=event.target.closest('[data-action]');if(!btn)return;const action=btn.dataset.action;const id=btn.dataset.id;
