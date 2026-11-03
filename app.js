@@ -15,6 +15,9 @@ const sampleData = () => ({
 
 let state;
 try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || sampleData(); } catch { state = sampleData(); }
+// A browser-stored role is never an authority. Restore the customer shell and derive privileges from a verified session.
+state.role = 'customer';
+state.view = 'home';
 state.cars = [];
 state.bookings = [];
 state.settlements = [];
