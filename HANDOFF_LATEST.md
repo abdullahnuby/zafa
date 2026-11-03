@@ -43,3 +43,15 @@ The customer can pass the password check, but the profile API rejects the bearer
 - Transactional booking creation, expiring availability holds, concurrent no-overlap protection, and complete owner/driver dispatch remain launch blockers.
 - No payment gateway is connected. InstaPay receipts are manual-review evidence; cash requires authorized confirmation.
 - Keep live reservation acceptance and money collection disabled until booking transaction safety, role-specific end-to-end testing, and Egyptian operating/legal review are complete.
+
+## Vehicle photo management — 2026-11-03
+
+- Admin can upload 1–3 car photos directly from the device, preview before saving, append photos later up to the same three-photo total, choose the primary photo, and delete non-final photos.
+- Formats: JPEG, PNG, WEBP. Server validates stored object content type and size (5 MB maximum per photo) after a direct presigned upload.
+- Added a separate Neon Object Storage bucket `vehicle-photos` with `public_read` access for vehicle display images. Payment receipts remain in the separate private `payment-receipts` bucket.
+- Photo metadata is stored in `public.vehicle_media`; only approved photos are exposed in the customer catalogue.
+- Applied migration `0004_vehicle_media_max_three` on production: order slots are limited to 0–2 and `(vehicle_id, sort_order)` is unique and deferred. The table was empty before applying the constraints.
+- GitHub Actions passed 47/47 tests (0 failures): https://github.com/abdullahnuby/zafa/actions/runs/41710516262.
+- Neon successfully issued a presigned upload URL. A full browser-to-object upload was not verified in this environment because the container could not resolve the storage host; complete a real browser upload after the matching Vercel deployment is live.
+- Do not treat the photo workflow as live until a production deployment for the current main commit reaches READY.
+
