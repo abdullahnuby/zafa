@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     const { rows } = await getPool().query(`
       SELECT
         v.id,
+        o.id AS owner_id,
         v.make AS brand,
         v.model,
         v.model_year AS year,
