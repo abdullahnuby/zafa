@@ -5,28 +5,50 @@ import { getAuthBearerToken } from "../lib/client-auth-token.mjs";
 const signedJwt = "eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJ6YWZmYS11c2VyIn0.signature";
 const opaqueSessionId = "opaque-better-auth-session-id-that-is-not-a-jwt";
 
-test("uses the signed JWT from the JWT plugin instead of an opaque sign-in session id", async () => {
-  let calls = 0;
+test("uses the JWT injected into the successful Neon sign-in session", async () => {
+  let sessionReads = 0;
   const authClient = {
-    token: async () => {
-      calls += 1;
-      return { data: { token: signedJwt } };
+    getSession: async () => {
+      sessionReads += 1;
+      return { data: { session: { token: "a different token" } } };
     }
   };
 
-  // The legacy extra argument is intentionally ignored; it must never be used as a bearer token.
-  assert.equal(await getAuthBearerToken(authClient, opaqueSessionId), signedJwt);
-  assert.equal(calls, 1);
+  assert.equal(await getAuthBearerToken(authClient, signedJwt), signedJwt);
+  assert.equal(sessionReads, 0);
 });
 
-test("returns null when the JWT plugin has no sufficiently long token", async () => {
-  assert.equal(await getAuthBearerToken({ token: async () => ({ data: {} }) }), null);
-  assert.equal(await getAuthBearerToken({ token: async () => ({ data: { token: "short" } }) }), null);
-});
-
-test("preserves token endpoint error status and code", async () => {
+test("restores the injected JWT through Neon SDK getSession", async () => {
   const authClient = {
-    token: async () => ({
+    getSession: async () => ({ data: { session: { token: signedJwt } } })
+  };
+
+  assert.equal(await getAuthBearerToken(authClient), signedJwt);
+});
+
+test("rejects opaque session identifiers and malformed JWT values", async () => {
+  const opaqueClient = {
+    getSession: async () => ({ data: { session: { token: opaqueSessionId } } })
+  };
+  const malformedClient = {
+    getSession: async () => ({ data: { session: { token: "header.payload" } } })
+  };
+
+  assert.equal(await getAuthBearerToken(opaqueClient), null);
+  assert.equal(await getAuthBearerToken(malformedClient), null);
+});
+
+test("returns null when no authenticated JWT is present", async () => {
+  const authClient = {
+    getSession: async () => ({ data: { session: null } })
+  };
+
+  assert.equal(await getAuthBearerToken(authClient), null);
+});
+
+test("preserves getSession endpoint error status and code", async () => {
+  const authClient = {
+    getSession: async () => ({
       error: { message: "Unauthorized", status: 401, code: "AUTH_REQUIRED" }
     })
   };
@@ -37,9 +59,9 @@ test("preserves token endpoint error status and code", async () => {
   );
 });
 
-test("fails clearly when the JWT plugin method is unavailable", async () => {
+test("fails clearly when the Neon session method is unavailable", async () => {
   await assert.rejects(
     () => getAuthBearerToken({}),
-    error => error.message === "AUTH_TOKEN_METHOD_UNAVAILABLE"
+    error => error.message === "AUTH_SESSION_METHOD_UNAVAILABLE"
   );
 });
