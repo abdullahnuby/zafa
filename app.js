@@ -416,6 +416,16 @@ async function loadAdminFleet(){
   return adminFleet;
  }finally{adminFleetLoading=false;}
 }
+async function loadAdminBookings(){
+ if(state.role!=="admin")return adminBookings;
+ adminBookingsLoading=true;
+ try{
+  const data=await adminApiRequest("/api/v1/admin/bookings");
+  adminBookings=data.bookings||[];
+  if(state.role==="admin"&&(state.view==="admin-bookings"||state.view==="admin-overview"))render();
+  return adminBookings;
+ }finally{adminBookingsLoading=false;}
+}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){
  currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();
@@ -592,7 +602,17 @@ function bookingDetails(id){const b=bookingById(id);if(!b)return;const c=carById
 }
 function ownerAccept(id){const b=bookingById(id);if(!b)return;const next='awaiting_payment';try{assertBookingTransition(b.status,next);}catch{return toast('حالة الطلب لا تسمح بالقبول');}b.status=next;persist();closeModal();render();toast(b.status==='confirmed'?'تم قبول الطلب — لم يتم تعيين سائق بعد':'تم قبول الطلب — ينتظر استكمال الدفع التجريبي',true);}
 function simulatePayment(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'confirmed');}catch{return toast('لا يمكن تأكيد الدفع لهذه الحالة');}b.paymentState='paid_simulated';b.status='confirmed';persist();closeModal();render();toast('تم تحديث حالة الدفع كمحاكاة فقط — لا توجد معاملة مالية',true);}
-function assignDriver(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'driver_assigned');}catch{return toast('لا يمكن تعيين سائق قبل تأكيد الحجز');}b.driverId='driver1';b.status='driver_assigned';persist();closeModal();render();toast('تم إسناد السائق التجريبي للحجز',true);}
+async function assignDriverToBooking(bookingItemId){
+ const select=[...document.querySelectorAll("[data-driver-select]")].find(node=>node.dataset.driverSelect===bookingItemId);
+ const driverId=select?.value||"";
+ if(!driverId)return toast("اختر سائقًا موثقًا أولًا");
+ try{
+  await adminApiRequest("/api/v1/admin/assign-driver","POST",{bookingItemId,driverId});
+  await Promise.all([loadAdminBookings(),loadAdminFleet()]);
+  render();
+  toast("تم إسناد السائق إلى المهمة",true);
+ }catch(error){toast(adminErrorMessage(error));}
+}
 function addCar(){
  const ownerOptions=(adminFleet.owners||[]).map(o=>`<option value="${o.id}">${escapeHtml(o.display_name)} — ${escapeHtml(o.legal_name)}</option>`).join("");
  const body=`<form id="add-car-form">
