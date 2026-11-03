@@ -26,18 +26,20 @@ state.favorites = [];
 let activeCarId = null;
 let browseFilter = 'all';
 let bookingDraft = null;
+let adminFleet = { owners: [], drivers: [], vehicles: [], availabilityRules: [], availabilityBlocks: [], packages: [] };
+let adminFleetLoading = false;
 
 const roleConfig = {
   customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','🏡'],['cars','السيارات','🚘'],['bookings','حجوزاتي','🗓️'],['favorites','المفضلة','💗'],['account','حسابي','👤']]},
   owner: {label:'مالك سيارة',default:'owner-overview',nav:[['owner-overview','ملخص المالك','📊'],['owner-vehicles','سياراتي','🚗'],['owner-requests','طلبات الحجز','📩'],['owner-calendar','التوافر','🗓️'],['owner-earnings','الأرباح والتسويات','💰']]},
   driver: {label:'سائق',default:'driver-tasks',nav:[['driver-tasks','مهامي','🧭'],['driver-history','سجل الرحلات','🚦'],['driver-account','حسابي','👤']]},
-  admin: {label:'إدارة زفّة',default:'admin-overview',nav:[['admin-overview','مركز العمليات','🎛️'],['admin-bookings','الحجوزات','📋'],['admin-vehicles','اعتماد السيارات','🚘'],['admin-people','الملاك والسائقون','👥'],['admin-finance','المالية والتسويات','💳'],['admin-reports','التقارير','📈']]}
+  admin: {label:'إدارة زفّة',default:'admin-overview',nav:[['admin-overview','مركز العمليات','🎛️'],['admin-vehicles','السيارات','🚘'],['admin-people','الملاك والسائقون','👥'],['admin-schedule','المواعيد والتوافر','🗓️'],['admin-bookings','الحجوزات','📋'],['admin-finance','المالية','💳'],['admin-reports','التقارير','📈']]}
 };
 const viewTitles = {
   home:'الرئيسية',cars:'اكتشف السيارات',bookings:'حجوزاتي',favorites:'المفضلة',account:'حسابي',
   'owner-overview':'ملخص المالك','owner-vehicles':'سياراتي','owner-requests':'طلبات الحجز','owner-calendar':'التوافر','owner-earnings':'الأرباح والتسويات',
   'driver-tasks':'مهامي اليوم','driver-history':'سجل الرحلات','driver-account':'حسابي',
-  'admin-overview':'مركز العمليات','admin-bookings':'إدارة الحجوزات','admin-vehicles':'اعتماد السيارات','admin-people':'الملاك والسائقون','admin-finance':'المالية والتسويات','admin-reports':'التقارير'
+  'admin-overview':'مركز العمليات','admin-bookings':'إدارة الحجوزات','admin-vehicles':'إدارة السيارات','admin-people':'الملاك والسائقون','admin-schedule':'المواعيد والتوافر','admin-finance':'المالية والتسويات','admin-reports':'التقارير'
 };
 function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function carById(id){ return state.cars.find(c=>c.id===id); }
@@ -52,7 +54,10 @@ function carArt(color='silver'){
 function carCard(car){
   const favorite=state.favorites.includes(car.id);
   const low=car.packagePrices.classic;
-  return `<article class="car-card"><div class="car-art ${escapeHtml(car.color)}">${carArt(car.color)}<span class="car-badge">✓ سيارة معتمدة</span><button class="favorite ${favorite?'active':''}" data-action="favorite" data-id="${car.id}" aria-label="إضافة للمفضلة">${favorite?'♥':'♡'}</button></div><div class="car-body"><div class="car-title-row"><div><h3>${escapeHtml(car.brand)} ${escapeHtml(car.model)}</h3><div class="car-sub">موديل ${car.year} · ${escapeHtml(car.zone)}</div></div><span class="rating">★ ${car.rating?car.rating.toFixed(1):'جديد'} <small>(${car.reviews})</small></span></div><div class="car-meta"><span>♙ ${car.seats} أفراد</span><span>⚙ ${escapeHtml(car.transmission)}</span><span>✓ بسائق</span></div><div class="car-price-row"><div class="price">${money(low)} <small>/ 3 ساعات</small></div><span class="owner-type">${car.ownerType==='fleet'?'أسطول زفّة':'مالك موثّق'}</span></div><div class="car-actions"><button class="btn btn-outline btn-small" data-action="details" data-id="${car.id}">التفاصيل</button><button class="btn btn-primary btn-small" data-action="book" data-id="${car.id}">احجز السيارة</button></div></div></article>`;
+  const media=car.imageUrl
+    ? `<img class="car-photo" src="${escapeHtml(car.imageUrl)}" alt="${escapeHtml(car.brand)} ${escapeHtml(car.model)}" loading="lazy">`
+    : carArt(car.color||'silver');
+  return `<article class="car-card"><div class="car-art ${escapeHtml(car.color||'silver')}">${media}<span class="car-badge">✓ سيارة معتمدة</span><button class="favorite ${favorite?'active':''}" data-action="favorite" data-id="${car.id}" aria-label="إضافة للمفضلة">${favorite?'♥':'♡'}</button></div><div class="car-body"><div class="car-title-row"><div><h3>${escapeHtml(car.brand)} ${escapeHtml(car.model)}</h3><div class="car-sub">موديل ${car.year} · ${escapeHtml(car.zone)}</div></div><span class="rating">★ ${car.rating?car.rating.toFixed(1):'جديد'} <small>(${car.reviews})</small></span></div><div class="car-meta"><span>♙ ${car.seats} أفراد</span><span>⚙ ${escapeHtml(car.transmission)}</span><span>✓ بسائق</span></div><div class="car-price-row"><div class="price">${money(low)} <small>/ 3 ساعات</small></div><span class="owner-type">${car.ownerType==='fleet'?'أسطول زفّة':'مالك موثّق'}</span></div><div class="car-actions"><button class="btn btn-outline btn-small" data-action="details" data-id="${car.id}">التفاصيل</button><button class="btn btn-primary btn-small" data-action="book" data-id="${car.id}">احجز السيارة</button></div></div></article>`;
 }
 function pageHeading(kicker,title,desc,button=''){return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${desc}</p></div>${button}</div>`;}
 function statCard(icon,label,value,foot){return `<div class="stat-card"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-icon">${icon}</span></div><div class="stat-value">${value}</div><div class="stat-foot">${foot}</div></div>`;}
@@ -69,7 +74,7 @@ function render(){
   const pages={home:renderHome,cars:renderCars,bookings:renderCustomerBookings,favorites:renderFavorites,account:renderCustomerAccount,
     'owner-overview':renderOwnerOverview,'owner-vehicles':renderOwnerVehicles,'owner-requests':renderOwnerRequests,'owner-calendar':renderOwnerCalendar,'owner-earnings':renderOwnerEarnings,
     'driver-tasks':renderDriverTasks,'driver-history':renderDriverHistory,'driver-account':renderDriverAccount,
-    'admin-overview':renderAdminOverview,'admin-bookings':renderAdminBookings,'admin-vehicles':renderAdminVehicles,'admin-people':renderAdminPeople,'admin-finance':renderAdminFinance,'admin-reports':renderAdminReports};
+    'admin-overview':renderAdminOverview,'admin-bookings':renderAdminBookings,'admin-vehicles':renderAdminVehicles,'admin-people':renderAdminPeople,'admin-schedule':renderAdminSchedule,'admin-finance':renderAdminFinance,'admin-reports':renderAdminReports};
   root.innerHTML=(pages[state.view]||renderHome)();
 }
 function renderHome(){
@@ -188,7 +193,7 @@ async function getAuthToken(sessionJwt=null){
  return getAuthBearerToken(authClient, sessionJwt);
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
-function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
+function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();if(state.role==='admin')loadAdminFleet().catch(e=>toast(adminErrorMessage(e)));}
 function normalizeCustomerPhone(value){
  const raw=String(value||"").replace(/\D/g,"");
  let digits=raw;
