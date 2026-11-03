@@ -223,11 +223,15 @@ function showAuthError(message){
  const box=document.querySelector("#auth-error");if(!box)return;
  box.textContent=message||"";box.hidden=!message;
 }
-function friendlyAuthError(error){
+function friendlyAuthError(error,stage="sign-in"){
  const status=Number(error?.status||error?.statusCode||error?.response?.status||0);
  const code=String(error?.code||error?.body?.code||"").toLowerCase();
  const raw=String(error?.message||"");
- if(status===404||/http 404/i.test(raw))return "خدمة تسجيل الدخول رجّعت 404. غالبًا فيه مشكلة في عنوان مسار المصادقة، مش في بياناتك. جرّب تحديث الصفحة، ولو استمر الخطأ هنصلحه من الخدمة.";
+ if(status===404||/http 404/i.test(raw)){
+  if(stage==="session")return "بيانات الدخول وصلت لخدمة المصادقة، لكن استرجاع جلسة الحساب رجع 404. هنراجع مسار الجلسة، ومش محتاج تعيد إنشاء حسابك.";
+  if(stage==="profile")return "تمت المصادقة، لكن ملف العميل غير متاح على الخادم حاليًا. حسابك لم يُحذف؛ هنراجع ربط الملف.";
+  return "خدمة المصادقة لم تتعرف على طلب الدخول لهذا الحساب. لا تنشئ حسابًا جديدًا بنفس الرقم؛ هنراجع ربط الحساب وكلمة المرور.";
+ }
  if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw))return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
  if(/user already exists|already exists|user_already_exists|email_already_exists/i.test(code+" "+raw))return "رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول بدل إنشاء حساب جديد.";
  return "ما قدرناش نسجّل دخولك دلوقتي. راجع الاتصال وحاول تاني.";
@@ -241,6 +245,7 @@ async function submitAuth(){
  const password=String(d.get("password")||"");
  const signupDetails=authMode==="signup"?{displayName:String(d.get("name")||"").trim(),phone}:null;
  const submit=document.querySelector("#auth-submit-button");
+ let stage="sign-in";
  if(submit){submit.disabled=true;submit.textContent="جاري التحقق…";}
  showAuthError("");
  try{
@@ -248,14 +253,16 @@ async function submitAuth(){
    ?await authClient.signUp.email({name:signupDetails.displayName,email:authEmail,password})
    :await authClient.signIn.email({email:authEmail,password});
   if(r?.error)throw r.error;
+  stage="session";
   const session=await authClient.getSession();authSession=session?.data||null;
   if(!authSession?.user){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
    throw new Error("تعذر استعادة جلسة الدخول.");
   }
+  stage="profile";
   await loadProfile(signupDetails);
  }catch(e){
-  showAuthError(friendlyAuthError(e));
+  showAuthError(friendlyAuthError(e,stage));
  }finally{
   const button=document.querySelector("#auth-submit-button");
   if(button){button.disabled=false;button.textContent=authMode==="signup"?"إنشاء حسابي":"دخول إلى حسابي";}
@@ -265,7 +272,7 @@ async function submitAuth(){
 async function loadProfile(signupDetails=null){
  const token=await getAuthToken();if(!token)throw new Error("تعذر الحصول على جلسة آمنة.");
  const r=await fetch("/api/v1/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});const j=await r.json();
- if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_LOAD_FAILED");
+ if(!r.ok||j.ok!==true){const error=new Error(j.code||`PROFILE_HTTP_${r.status}`);error.status=r.status;error.code=j.code||"PROFILE_LOAD_FAILED";throw error;}
  if(j.profile){completeAuthentication(j.profile);return;}
  if(!signupDetails){openProfileModal();return;}
  const created=await fetch("/api/v1/profile",{
@@ -273,7 +280,7 @@ async function loadProfile(signupDetails=null){
   body:JSON.stringify(signupDetails)
  });
  const saved=await created.json();
- if(!created.ok||saved.ok!==true)throw new Error(saved.code||"PROFILE_SAVE_FAILED");
+ if(!created.ok||saved.ok!==true){const error=new Error(saved.code||`PROFILE_HTTP_${created.status}`);error.status=created.status;error.code=saved.code||"PROFILE_SAVE_FAILED";throw error;}
  completeAuthentication(saved.profile);
 }
 function completeAuthentication(profile){
