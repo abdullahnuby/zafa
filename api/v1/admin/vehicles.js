@@ -196,11 +196,21 @@ export default async function handler(req, res) {
         if (before.owner_status !== "approved" && before.owner_kind !== "fleet_partner") {
           throw new ApiError(409, "OWNER_NOT_APPROVED");
         }
-        const pendingDocs = await client.query(
-          "SELECT count(*)::int AS count FROM public.vehicle_documents WHERE vehicle_id=$1::uuid AND review_status='pending'",
+        const docs = await client.query(
+          `SELECT document_type, review_status,
+                  (expires_on IS NULL OR expires_on >= current_date) AS not_expired
+             FROM public.vehicle_documents
+            WHERE vehicle_id=$1::uuid`,
           [vehicleId]
         );
-        if (pendingDocs.rows[0].count > 0) throw new ApiError(409, "VEHICLE_DOCUMENTS_PENDING");
+        const approvedDocs = docs.rows.filter(doc => doc.review_status === "approved" && doc.not_expired);
+        const approvedTypes = new Set(approvedDocs.map(doc => doc.document_type));
+        if (!approvedTypes.has("vehicle_license") || !approvedTypes.has("insurance")) {
+          throw new ApiError(409, "VEHICLE_LICENSE_AND_INSURANCE_REQUIRED");
+        }
+        if (docs.rows.some(doc => doc.review_status === "pending")) {
+          throw new ApiError(409, "VEHICLE_DOCUMENTS_PENDING");
+        }
         const mediaCheck = await client.query(
           "SELECT count(*)::int AS count FROM public.vehicle_media WHERE vehicle_id=$1::uuid AND approved=true",
           [vehicleId]
