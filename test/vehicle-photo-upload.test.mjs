@@ -91,12 +91,12 @@ test("vehicle ad creation is one combined owner, driver, vehicle and photo form"
   assert.match(app, /name="ownerPhone"/);
   assert.match(app, /name="driverName"/);
   assert.match(app, /name="driverPhone"/);
-  assert.match(app, /ensureListingPerson\\(f,"owner"/);
-  assert.match(app, /ensureListingPerson\\(f,"driver"/);
+  assert.ok(app.includes('ensureListingPerson(f,"owner"'));
+  assert.ok(app.includes('ensureListingPerson(f,"driver"'));
   assert.match(app, /driverId:driver\.id/);
   assert.match(app, /إضافة إعلان سيارة متكامل/);
-  assert.doesNotMatch(app, /data-action="add-owner">\\+ إضافة مالك/);
-  assert.doesNotMatch(app, /data-action="add-driver">\\+ إضافة سائق/);
+  assert.ok(!app.includes('data-action="add-owner">+ إضافة مالك'));
+  assert.ok(!app.includes('data-action="add-driver">+ إضافة سائق'));
 });
 
 test("vehicle records retain the listing's default driver and publishing requires a verified chauffeur", () => {
@@ -105,7 +105,7 @@ test("vehicle records retain the listing's default driver and publishing require
   assert.match(vehicleApi, /DRIVER_NOT_VERIFIED_OR_INACTIVE/);
   assert.match(fleet, /default_driver_name/);
   assert.match(fleet, /LEFT JOIN public\.drivers driver_profile/);
-  assert.match(schema, /default_driver_id uuid REFERENCES drivers\\(id\\)/);
+  assert.ok(schema.includes("default_driver_id uuid REFERENCES drivers(id)"));
   assert.match(driverMigration, /vehicles_default_driver_id_fkey/);
   assert.match(driverMigration, /0005_vehicle_default_driver/);
 });
