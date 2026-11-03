@@ -192,6 +192,64 @@ let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName
 async function getAuthToken(sessionJwt=null){
  return getAuthBearerToken(authClient, sessionJwt);
 }
+function adminErrorMessage(error){
+ const code=String(error?.code||error?.message||"");
+ const messages={
+  ADMIN_FLEET_LOAD_FAILED:"تعذر تحميل بيانات الإدارة. حدّث الصفحة وحاول مرة أخرى.",
+  FORBIDDEN:"هذا الإجراء متاح لحساب الإدارة فقط.",
+  AUTH_REQUIRED:"انتهت جلسة الإدارة. سجّل الدخول مرة أخرى.",
+  INVALID_EGYPTIAN_PHONE:"رقم الموبايل المصري غير صحيح.",
+  PHONE_ALREADY_LINKED:"رقم الهاتف مرتبط بحساب آخر بالفعل.",
+  AUTH_PHONE_IDENTITY_MISMATCH:"رقم الحساب لا يطابق رقم الهاتف الذي أدخلته.",
+  OWNER_NOT_FOUND:"المالك المحدد غير موجود.",
+  OWNER_NOT_APPROVED:"يجب اعتماد ملف المالك قبل نشر السيارة.",
+  OWNER_CONTRACT_REQUIRED:"أضف عقد المالك وراجعه واعتمده قبل تفعيل الحساب.",
+  DRIVER_DOCUMENTS_REQUIRED:"لا يمكن اعتماد السائق قبل مراجعة رخصة القيادة والبطاقة الشخصية.",
+  DRIVER_NOT_VERIFIED_OR_INACTIVE:"السائق غير موثق أو غير نشط.",
+  VEHICLE_PHOTO_REQUIRED:"أضف صورة رئيسية للسيارة قبل نشرها.",
+  VEHICLE_DOCUMENTS_PENDING:"هناك مستندات سيارة لم تتم مراجعتها بعد.",
+  DUPLICATE_PLATE_NUMBER:"رقم اللوحة مسجل لسيارة أخرى.",
+  DRIVER_SCHEDULE_CONFLICT:"السائق لديه مهمة أخرى تتعارض مع هذا الموعد.",
+  AVAILABILITY_CONFLICT:"الفترة تتعارض مع فترة حظر أو موعد موجود.",
+  OWNER_NOT_FOUND:"المالك المحدد غير موجود.",
+  INVALID_TIME_RANGE:"وقت البداية يجب أن يسبق وقت النهاية.",
+  AUTH_USER_NOT_FOUND:"حساب الدخول غير موجود في خدمة المصادقة."
+ };
+ return messages[code]||String(error?.message||"حدث خطأ غير متوقع. راجع البيانات وحاول مرة أخرى.");
+}
+async function adminApiRequest(path,method="GET",body=null){
+ const token=await getAuthToken();
+ if(!token)throw new Error("AUTH_REQUIRED");
+ const response=await fetch(path,{
+  method,
+  headers:{"Authorization":`Bearer ${token}`,"Accept":"application/json","Content-Type":"application/json"},
+  body:body===null?undefined:JSON.stringify(body),
+  cache:"no-store"
+ });
+ let data={};
+ try{data=await response.json();}catch{}
+ if(!response.ok||data.ok!==true){
+  const error=new Error(data.code||"ADMIN_REQUEST_FAILED");
+  error.code=data.code||"ADMIN_REQUEST_FAILED";
+  error.status=response.status;
+  throw error;
+ }
+ return data;
+}
+async function loadAdminFleet(){
+ if(state.role!=="admin")return adminFleet;
+ adminFleetLoading=true;
+ try{
+  const data=await adminApiRequest("/api/v1/admin/fleet");
+  adminFleet={
+   owners:data.owners||[],drivers:data.drivers||[],vehicles:data.vehicles||[],
+   availabilityRules:data.availabilityRules||[],availabilityBlocks:data.availabilityBlocks||[],
+   packages:data.packages||[]
+  };
+  if(state.role==="admin"&&String(state.view).startsWith("admin-"))render();
+  return adminFleet;
+ }finally{adminFleetLoading=false;}
+}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();if(state.role==='admin')loadAdminFleet().catch(e=>toast(adminErrorMessage(e)));}
 function normalizeCustomerPhone(value){
@@ -427,7 +485,7 @@ async function refreshVehicleCatalog(){
   const r=await fetch("/api/v1/vehicles",{headers:{Accept:"application/json"},cache:"no-store"});const j=await r.json();
   if(!r.ok||j.ok!==true)throw new Error(j.code||"CATALOG_UNAVAILABLE");
   state.cars=(j.vehicles||[]).filter(v=>Number(v.package_prices?.classic)>0).map(v=>({
-   id:v.id,brand:v.brand,model:v.model,year:Number(v.year),color:"silver",plate:"",seats:Number(v.seats),
+   id:v.id,brand:v.brand,model:v.model,year:Number(v.year),color:"silver",plate:"",imageUrl:v.image_url||null,seats:Number(v.seats),
    transmission:v.transmission||"أوتوماتيك",ownerType:["fleet_partner","premium_partner"].includes(v.owner_type)?"fleet":"independent",
    ownerId:v.owner_id,zone:Array.isArray(v.service_zones)&&v.service_zones.length?v.service_zones.join("، "):"الأقصر",
    packagePrices:Object.fromEntries(Object.entries(v.package_prices||{}).map(([k,val])=>[k,Number(val)])),
