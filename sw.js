@@ -1,4 +1,4 @@
-const CACHE = "zaffa-shell-v2";
+const CACHE = "zaffa-shell-v3";
 const SHELL_FILES = [
   "/",
   "/index.html",
@@ -27,6 +27,10 @@ self.addEventListener("activate", event => {
           .map(key => caches.delete(key))
       ))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      .then(clients => Promise.all(
+        clients.map(client => client.navigate(client.url).catch(() => null))
+      ))
   );
 });
 
