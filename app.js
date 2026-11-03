@@ -1059,6 +1059,11 @@ async function copyAdminPassword(){
  try{await navigator.clipboard.writeText(input.value);toast("تم نسخ كلمة المرور المؤقتة",true);}catch{input.select();toast("حدد كلمة المرور وانسخها يدويًا");}
 }
 
+document.addEventListener("change",event=>{
+ const input=event.target;
+ if(input?.id==="vehicle-photo-input")renderVehiclePhotoPreviews(input);
+});
+
 document.addEventListener('click',event=>{
  const btn=event.target.closest('[data-action]');if(!btn)return;const action=btn.dataset.action;const id=btn.dataset.id;
  if(action==='account'){if(authSession?.user){if(currentProfile)openModal('حسابك',`<div class="profile-card"><div class="profile-icon">◎</div><div><b>${escapeHtml(currentProfile.displayName)}</b><small>رقم الموبايل: ${escapeHtml(currentProfile.phone||'')}</small></div></div>`,`<button class="btn btn-danger" data-action="sign-out">تسجيل الخروج</button><button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);else openProfileModal();}else openAuthModal();}
@@ -1087,6 +1092,10 @@ document.addEventListener('click',event=>{
  else if(action==='save-car')saveCar();
  else if(action==='edit-car')editCar(id);
  else if(action==='save-car-update')saveCarUpdate();
+ else if(action==='add-vehicle-photos')openVehiclePhotoManager(id);
+ else if(action==='save-vehicle-photos')saveVehiclePhotos();
+ else if(action==='delete-vehicle-photo')deleteAdminVehiclePhoto(id,btn.dataset.mediaId);
+ else if(action==='vehicle-photo-primary')setAdminVehiclePrimaryPhoto(id,btn.dataset.mediaId);
  else if(action==='vehicle-decision')decideVehicle(id,btn.dataset.decision);
  else if(action==='reload-fleet')loadAdminFleet().then(render).catch(e=>toast(adminErrorMessage(e)));
  else if(action==='add-owner')addOwner();
@@ -1138,7 +1147,8 @@ async function refreshVehicleCatalog(){
   const r=await fetch("/api/v1/vehicles",{headers:{Accept:"application/json"},cache:"no-store"});const j=await r.json();
   if(!r.ok||j.ok!==true)throw new Error(j.code||"CATALOG_UNAVAILABLE");
   state.cars=(j.vehicles||[]).filter(v=>Number(v.package_prices?.classic)>0).map(v=>({
-   id:v.id,brand:v.brand,model:v.model,year:Number(v.year),color:"silver",plate:"",imageUrl:v.image_url||null,seats:Number(v.seats),
+   id:v.id,brand:v.brand,model:v.model,year:Number(v.year),color:"silver",plate:"",imageUrl:v.image_url||null,
+   images:(v.image_urls||[]).map(url=>({url})),seats:Number(v.seats),
    transmission:v.transmission||"أوتوماتيك",ownerType:["fleet_partner","premium_partner"].includes(v.owner_type)?"fleet":"independent",
    ownerId:v.owner_id,zone:Array.isArray(v.service_zones)&&v.service_zones.length?v.service_zones.join("، "):"الأقصر",
    packagePrices:Object.fromEntries(Object.entries(v.package_prices||{}).map(([k,val])=>[k,Number(val)])),
