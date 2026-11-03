@@ -232,9 +232,9 @@ function friendlyAuthError(error,stage="sign-in"){
  const code=String(error?.code||error?.body?.code||"").toLowerCase();
  const raw=String(error?.message||"");
  if(status===404||/http 404/i.test(raw)){
-  if(stage==="session")return "بيانات الدخول وصلت لخدمة المصادقة، لكن استرجاع جلسة الحساب رجع 404. هنراجع مسار الجلسة، ومش محتاج تعيد إنشاء حسابك.";
+  if(stage==="token")return "تسجيل الدخول وصل للخدمة، لكن استخراج جلسة الأمان رجع 404. حسابك موجود؛ هنراجع مسار الجلسة.";
   if(stage==="profile")return "تمت المصادقة، لكن ملف العميل غير متاح على الخادم حاليًا. حسابك لم يُحذف؛ هنراجع ربط الملف.";
-  return "خدمة المصادقة لم تتعرف على طلب الدخول لهذا الحساب. لا تنشئ حسابًا جديدًا بنفس الرقم؛ هنراجع ربط الحساب وكلمة المرور.";
+  return "مسار تسجيل الدخول غير متاح على الخدمة. هنراجع الإعدادات، ومش محتاج تنشئ حسابًا جديدًا.";
  }
  if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw))return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
  if(/user already exists|already exists|user_already_exists|email_already_exists/i.test(code+" "+raw))return "رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول بدل إنشاء حساب جديد.";
@@ -258,19 +258,16 @@ async function submitAuth(){
    :await authClient.signIn.email({email:authEmail,password});
   if(r?.error)throw r.error;
   const authData=r?.data||null;
-  if(authData?.user){
-   authSession={user:authData.user,session:authData.session||null};
-  }else{
-   stage="session";
-   const session=await authClient.getSession();
-   authSession=session?.data||null;
-  }
-  if(!authSession?.user){
+  if(authData?.user)authSession={user:authData.user,session:null};
+  stage="token";
+  const jwtToken=await getAuthToken();
+  if(!jwtToken){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
-   throw new Error("تعذر استعادة جلسة الدخول.");
+   throw new Error("AUTH_TOKEN_UNAVAILABLE");
   }
+  if(!authSession?.user)authSession={user:{name:signupDetails?.displayName||""},session:null};
   stage="profile";
-  await loadProfile(signupDetails);
+  await loadProfile(signupDetails,jwtToken);
  }catch(e){
   showAuthError(friendlyAuthError(e,stage));
  }finally{
@@ -279,8 +276,8 @@ async function submitAuth(){
  }
 }
 
-async function loadProfile(signupDetails=null){
- const token=await getAuthToken();if(!token)throw new Error("تعذر الحصول على جلسة آمنة.");
+async function loadProfile(signupDetails=null,tokenOverride=null){
+ const token=tokenOverride||await getAuthToken();if(!token)throw new Error("AUTH_TOKEN_UNAVAILABLE");
  const r=await fetch("/api/v1/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});const j=await r.json();
  if(!r.ok||j.ok!==true){const error=new Error(j.code||`PROFILE_HTTP_${r.status}`);error.status=r.status;error.code=j.code||"PROFILE_LOAD_FAILED";throw error;}
  if(j.profile){completeAuthentication(j.profile);return;}
@@ -313,7 +310,16 @@ async function submitProfile(){
   const token=await getAuthToken();const r=await fetch("/api/v1/profile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({displayName:d.get("displayName"),phone:d.get("phone")})});const j=await r.json();if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_SAVE_FAILED");completeAuthentication(j.profile);}
  catch(e){toast(e?.message==="PHONE_ALREADY_LINKED"?"رقم الهاتف مرتبط بحساب آخر.":e?.message||"تعذر حفظ البيانات.");}
 }
-async function restoreAuthSession(){try{const r=await authClient.getSession();authSession=r?.data||null;if(!authSession?.user){updateAccountButton();return;}await loadProfile();}catch{authSession=null;currentProfile=null;updateAccountButton();}}
+async function restoreAuthSession(){
+ try{
+  const token=await getAuthToken();
+  if(!token){authSession=null;currentProfile=null;updateAccountButton();return;}
+  authSession={user:{name:""},session:null};
+  await loadProfile(null,token);
+ }catch{
+  authSession=null;currentProfile=null;updateAccountButton();
+ }
+}
 async function signOut(){try{await authClient.signOut();}catch{}authSession=null;currentProfile=null;state.role="customer";state.view="home";render();updateAccountButton();closeModal(true);toast("تم تسجيل الخروج.",true);}
 
 function toast(message,good=false){const root=document.querySelector('#toast-root');const el=document.createElement('div');el.className=`toast ${good?'good':''}`;el.textContent=message;root.append(el);setTimeout(()=>el.remove(),3200);}
