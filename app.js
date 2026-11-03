@@ -425,28 +425,3 @@ async function refreshVehicleCatalog(){
   }));render();
  }catch(e){console.warn("[ZAFFA] catalog refresh failed",e?.message||"unknown");}
 }
-async function refreshBackendStatus() {
-  const badge = document.querySelector('#backend-status');
-  if (!badge) return;
-  badge.className = 'backend-status connecting';
-  badge.innerHTML = '<span class="backend-dot"></span> جاري الاتصال بقاعدة البيانات';
-  try {
-    const response = await fetch('/api/health', {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      cache: 'no-store'
-    });
-    const payload = await response.json();
-    if (!response.ok || payload?.ok !== true) {
-      throw new Error(payload?.code || 'BACKEND_UNAVAILABLE');
-    }
-    badge.className = 'backend-status online';
-    badge.innerHTML = '<span class="backend-dot"></span> Neon متصلة';
-    badge.title = `قاعدة البيانات متصلة — ${Number(payload.approvedVehicles || 0)} سيارات معتمدة`;
-  } catch {
-    badge.className = 'backend-status offline';
-    badge.innerHTML = '<span class="backend-dot"></span> قاعدة البيانات غير متاحة';
-    badge.title = 'تعذر الوصول إلى API أو قاعدة Neon';
-  }
-}
-refreshBackendStatus();

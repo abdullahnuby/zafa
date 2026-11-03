@@ -1,13 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-<title id="title">ZAFFA</title>
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172b3a"/><stop offset="1" stop-color="#071222"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7e2b6"/><stop offset=".5" stop-color="#e8bd75"/><stop offset="1" stop-color="#bd8845"/></linearGradient></defs>
-<rect width="512" height="512" rx="112" fill="url(#bg)"/>
-<path d="M81 265 C110 111 201 62 268 62 C351 62 419 128 435 267 C439 294 438 315 433 337" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
-<g fill="none" stroke="url(#g)" stroke-width="9"><path d="M207 220 C207 185 228 164 256 164 C286 164 306 189 306 219 C306 238 298 253 286 263"/><path d="M273 220 C273 185 294 164 322 164 C352 164 372 189 372 219 C372 243 359 261 339 269"/></g>
-<path d="M252 164 C243 187 245 214 258 236 C271 214 273 187 263 164" fill="#101f32" stroke="url(#g)" stroke-width="6"/>
-<g stroke="url(#g)" stroke-width="4" stroke-linejoin="round" fill="none"><path d="M234 120 L253 96 L300 96 L319 120 L277 174 Z"/><path d="M234 120 H319 M253 96 L265 120 L277 174 L290 120 L300 96 M253 96 L277 120 L300 96"/></g>
-<path d="M53 301 C83 293 118 278 153 258 C179 242 202 224 239 220 C277 215 323 217 354 225 C385 233 408 251 431 271 L461 276 C478 280 494 291 500 306 L505 324 C507 335 499 343 487 343 H71 C56 343 48 335 49 324 Z" fill="#101f32" stroke="url(#g)" stroke-width="8" stroke-linejoin="round"/>
-<path d="M159 258 C190 238 208 224 241 220 C278 216 323 218 353 226 C377 232 398 248 420 272 C373 279 324 282 277 282 C229 282 189 272 159 258 Z" fill="#101f32" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"/>
-<path d="M70 305 C109 300 139 306 172 324 M420 300 C449 298 477 304 494 319" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round"/>
-<g fill="url(#g)"><circle cx="111" cy="358" r="14"/><circle cx="157" cy="358" r="14"/><circle cx="390" cy="358" r="14"/><circle cx="436" cy="358" r="14"/></g>
+<title id="title">ZAFFA — زفّة</title>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff8f6"/><stop offset="1" stop-color="#f7e7eb"/></linearGradient>
+ <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f1d6a8"/><stop offset=".55" stop-color="#d5a873"/><stop offset="1" stop-color="#b77e57"/></linearGradient>
+ <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a87588"/><stop offset="1" stop-color="#755064"/></linearGradient>
+</defs>
+<rect x="10" y="10" width="492" height="492" rx="116" fill="url(#bg)" stroke="#f2e2e5" stroke-width="4"/>
+<path d="M82 285 C105 111 203 55 260 55 C357 55 430 135 443 285" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round"/>
+<g fill="none" stroke="url(#g)" stroke-width="10"><circle cx="231" cy="180" r="43"/><circle cx="283" cy="180" r="43"/></g>
+<path d="M245 146 C231 171 235 201 257 226 C280 201 284 171 269 146" fill="#fff8f6" stroke="url(#g)" stroke-width="7"/>
+<g fill="#fff8f6" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"><path d="M218 105 L239 80 H288 L309 105 L264 164 Z"/><path d="M218 105 H309 M239 80 L251 105 L264 164 L276 105 L288 80"/></g>
+<path d="M57 289 C93 282 127 270 159 247 C180 231 202 219 237 217 C276 214 321 221 347 235 C367 246 388 262 411 275 L449 282 C465 286 477 299 481 315 L485 330 C487 341 478 350 464 350 H51 C37 350 31 340 35 327 L43 302 C45 294 49 291 57 289 Z" fill="#fff8f6" stroke="url(#p)" stroke-width="9" stroke-linejoin="round"/>
+<path d="M160 248 C190 229 210 220 239 218 C275 216 319 222 345 236 C366 247 384 264 400 278 C355 286 306 291 263 291 C223 291 187 277 160 248 Z" fill="#faedf0" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M60 300 C107 294 133 302 170 329 M411 296 C444 294 463 307 478 325" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/>
+<g fill="#fff8f6" stroke="url(#g)" stroke-width="7"><circle cx="112" cy="363" r="19"/><circle cx="163" cy="363" r="19"/><circle cx="361" cy="363" r="19"/><circle cx="412" cy="363" r="19"/></g>
 </svg>

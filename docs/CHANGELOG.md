@@ -25,3 +25,9 @@
 - Switched authenticated profile loading and session restoration to the supported Neon JWT `token()` endpoint, avoiding an unnecessary post-login `get-session` request.
 - Added Neon Auth base URL/JWKS to Preview only so the temporary diagnostic can be run against the same auth branch without changing production settings.
 - Hero photo: Mark Cantle / Unsplash (Unsplash License). Wedding floral detail: Valdemars Magone / Unsplash (Unsplash License).
+
+## 2026-11-03 — Brand mark and quiet customer header
+- Refined the ZAFFA logo to match the approved reference: wedding rings and diamond above a clean car silhouette, Arabic wordmark, and English ZAFFA signature.
+- Updated the app icon to the same champagne-and-mauve wedding identity for home-screen and browser use.
+- Removed the customer-facing Neon connection badge and its UI-only health-check poll; catalog loading and all backend API behavior remain unchanged.
+- Updated browser/PWA theme colors to the warm ivory and blush identity.
