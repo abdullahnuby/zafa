@@ -170,15 +170,123 @@ function renderDriverAccount(){return `${pageHeading('ملف السائق','حس
  <div class="panel" style="max-width:650px"><div class="profile-card" style="border:0;padding:0 0 16px"><div class="avatar" style="width:48px;height:48px">س</div><div><b style="font-size:14px">سائق زفّة التجريبي</b><small>ملف غير موثّق فعليًا</small></div><span class="status orange">مراجعة مطلوبة</span></div><div class="profile-grid"><div class="profile-card"><span class="profile-icon">☎</span><div><b>رقم الهاتف</b><small>غير مربوط برقم حقيقي</small></div></div><div class="profile-card"><span class="profile-icon">▣</span><div><b>رخصة القيادة</b><small>لم يتم رفع مستند</small></div></div></div><div class="notice warning">لا تستخدم هذه الواجهة لتشغيل سائق فعلي قبل التحقق من الهوية والرخصة والتأمين.</div></div>`;}
 
 function allAdminBookings(){return [...state.bookings].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));}
-function renderAdminOverview(){const all=state.bookings;const open=all.filter(b=>!['completed','cancelled','declined'].includes(b.status));const pendingCars=state.cars.filter(c=>c.approval==='pending');const confirmed=all.filter(b=>['confirmed','driver_assigned','ready','in_progress','completed'].includes(b.status));const volume=confirmed.reduce((s,b)=>s+b.total,0);return `${pageHeading('لوحة الإدارة','مركز العمليات','نظرة تشغيلية على الحجوزات والسيارات ومهام اليوم.')}
- <div class="stats-grid">${statCard('▤','إجمالي الحجوزات',all.length,'بيانات تجريبية')}${statCard('⌖','حجوزات نشطة',open.length,'تحتاج متابعة تشغيلية')}${statCard('◇','سيارات قيد الاعتماد',pendingCars.length,'مراجعة مستندات وصور')}${statCard('◈','قيمة حجوزات مؤكدة',money(volume),'ليست إيراد المنصة')}</div>
- <div class="admin-grid"><div class="panel"><h3>آخر الحجوزات</h3><div class="table-wrap"><table><thead><tr><th>رقم الحجز</th><th>العميل</th><th>الموعد</th><th>الحالة</th><th>القيمة</th></tr></thead><tbody>${allAdminBookings().slice(0,6).map(b=>`<tr><td>${b.id}</td><td>${escapeHtml(b.customerName)}</td><td>${b.date} · ${b.time}</td><td>${statusInfo(b.status)}</td><td>${money(b.total)}</td></tr>`).join('')}</tbody></table></div><button class="text-link" data-action="go" data-view="admin-bookings">كل الحجوزات ←</button></div><div class="panel"><h3>قائمة تحتاج تدخل</h3><div class="mini-list"><div class="mini-row"><div><b>طلبات مالك بانتظار الرد</b><small>${all.filter(b=>b.status==='pending_owner').length} طلب</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-bookings">مراجعة</button></div><div class="mini-row"><div><b>سيارات بانتظار الاعتماد</b><small>${pendingCars.length} سيارة</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-vehicles">مراجعة</button></div><div class="mini-row"><div><b>مدفوعات تحتاج متابعة</b><small>${all.filter(b=>b.status==='awaiting_payment').length} عملية</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-finance">المالية</button></div></div></div></div><div class="notice">هذه لوحة تشغيل ببيانات اصطناعية محلية. لا توجد حجوزات أو عملاء حقيقيون متصلون.</div>`;}
+function renderAdminOverview(){
+ const cars=adminFleet.vehicles||[], owners=adminFleet.owners||[], drivers=adminFleet.drivers||[];
+ const pendingCars=cars.filter(v=>v.approval_status==="pending");
+ const pendingOwners=owners.filter(o=>o.onboarding_status==="pending");
+ const pendingDrivers=drivers.filter(d=>d.verification_status==="pending");
+ const unverifiedDocs=cars.reduce((sum,v)=>sum+Number(v.pending_documents||0),0)+drivers.reduce((sum,d)=>sum+Number(d.pending_documents||0),0);
+ return `${pageHeading("لوحة الإدارة","مركز العمليات","بيانات تشغيل مباشرة من قاعدة البيانات؛ إدارة الأسطول والشركاء والتوافر من هنا.")}
+ <div class="stats-grid">
+  ${statCard("🚘","السيارات المسجلة",cars.length,"سجلات حقيقية")}
+  ${statCard("◇","سيارات بانتظار الاعتماد",pendingCars.length,"لا تظهر للعملاء")}
+  ${statCard("♙","ملفات ملاك بانتظار المراجعة",pendingOwners.length,"عقود وبيانات الشركاء")}
+  ${statCard("⌖","سائقون قيد التحقق",pendingDrivers.length,"لا يتم إسنادهم قبل التوثيق")}
+ </div>
+ <div class="admin-grid">
+  <div class="panel"><div class="section-head" style="margin:0 0 12px"><h3>إجراءات سريعة</h3></div>
+   <div class="admin-quick-actions">
+    <button class="btn btn-primary" data-action="add-car">+ إضافة سيارة</button>
+    <button class="btn btn-outline" data-action="add-owner">+ إضافة مالك</button>
+    <button class="btn btn-outline" data-action="add-driver">+ إضافة سائق</button>
+    <button class="btn btn-outline" data-action="go" data-view="admin-schedule">إدارة المواعيد</button>
+   </div>
+   <div class="mini-list" style="margin-top:14px">
+    <div class="mini-row"><div><b>سيارات تنتظر قرار الإدارة</b><small>${pendingCars.length} سجل</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-vehicles">فتح</button></div>
+    <div class="mini-row"><div><b>مستندات بانتظار المراجعة</b><small>${unverifiedDocs} مستند</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-people">فتح الملفات</button></div>
+    <div class="mini-row"><div><b>إجمالي المواعيد الأسبوعية</b><small>${(adminFleet.availabilityRules||[]).filter(r=>r.active).length} قاعدة إتاحة</small></div><button class="btn btn-outline btn-small" data-action="go" data-view="admin-schedule">التقويم</button></div>
+   </div>
+  </div>
+  <div class="panel"><h3>حالة التشغيل</h3>
+   <div class="mini-list">
+    <div class="mini-row"><div><b>الملاك المعتمدون</b><small>${owners.filter(o=>o.onboarding_status==="approved").length} من ${owners.length}</small></div><span class="status green">قاعدة البيانات</span></div>
+    <div class="mini-row"><div><b>السائقون الموثقون والنشطون</b><small>${drivers.filter(d=>d.verification_status==="verified"&&d.active&&d.is_active!==false).length} من ${drivers.length}</small></div><span class="status blue">جاهزية التشغيل</span></div>
+    <div class="mini-row"><div><b>السيارات المنشورة</b><small>${cars.filter(v=>v.approval_status==="approved").length} سيارة</small></div><span class="status green">الكتالوج العام</span></div>
+    <div class="mini-row"><div><b>الحجوزات</b><small>${state.bookings.length} عنصر في واجهة العرض الحالية</small></div><span class="status orange">تكامل التشغيل قيد الاستكمال</span></div>
+   </div>
+  </div>
+ </div>
+ <div class="notice">كل إضافة أو اعتماد أو تعديل في هذه اللوحة يُحفظ في Neon ويُسجل في سجل التدقيق. تصفح العملاء يعرض السيارات المعتمدة فقط.</div>`;
+}
 function renderAdminBookings(){const list=allAdminBookings();return `${pageHeading('التحكم في الحجوزات','إدارة الحجوزات','راجع الحالة، التعيين، ومتابعة تنفيذ الخدمة.')}
  <div class="panel"><div class="table-wrap"><table><thead><tr><th>رقم</th><th>العميل</th><th>السيارة</th><th>التاريخ</th><th>المالك</th><th>الحالة</th><th>القيمة</th><th></th></tr></thead><tbody>${list.map(b=>{const c=carById(b.carId)||{};return `<tr><td><b>${b.id}</b></td><td>${escapeHtml(b.customerName)}</td><td>${escapeHtml(c.brand||'')} ${escapeHtml(c.model||'')}</td><td>${b.date} · ${b.time}</td><td>${b.ownerId==='fleet1'?'أسطول زفّة':'مالك مستقل'}</td><td>${statusInfo(b.status)}</td><td>${money(b.total)}</td><td><button class="btn btn-outline btn-small" data-action="booking-details" data-id="${b.id}">فتح</button></td></tr>`}).join('')}</tbody></table></div></div>`;}
-function renderAdminVehicles(){const pending=state.cars.filter(c=>c.approval==='pending');const done=state.cars.filter(c=>c.approval!=='pending');return `${pageHeading('مراجعة الشركاء','اعتماد السيارات','لا تظهر السيارة للعميل إلا بعد استيفاء التحقق والمراجعة.')}
- <div class="panel"><h3>طلبات اعتماد جديدة (${pending.length})</h3>${pending.length?pending.map(c=>`<div class="queue-item"><div class="queue-thumb">◇</div><div class="queue-info"><b>${escapeHtml(c.brand)} ${escapeHtml(c.model)} · ${escapeHtml(c.plate)}</b><small>${c.year} · مالك مستقل · مستندات غير مرفوعة في النموذج</small></div><button class="btn btn-primary btn-small" data-action="approve-car" data-id="${c.id}">اعتماد تجريبي</button><button class="btn btn-danger btn-small" data-action="reject-car" data-id="${c.id}">رفض</button></div>`).join(''):`<div class="empty-state"><b>لا توجد سيارات جديدة</b></div>`}</div><div class="panel" style="margin-top:14px"><h3>سجل السيارات المعتمدة والمرفوضة</h3><div class="table-wrap"><table><thead><tr><th>السيارة</th><th>المالك</th><th>الحالة</th><th>المنطقة</th></tr></thead><tbody>${done.map(c=>`<tr><td>${escapeHtml(c.brand)} ${escapeHtml(c.model)}</td><td>${c.ownerId==='owner1'?'مالك 1':'أسطول / مالك 2'}</td><td>${c.approval==='approved'?'<span class="status green">معتمدة</span>':'<span class="status red">مرفوضة</span>'}</td><td>${escapeHtml(c.zone)}</td></tr>`).join('')}</tbody></table></div></div><div class="notice warning">زر الاعتماد يغيّر حالة السجل التجريبي فقط. الاعتماد الفعلي يتطلب مراجعة ترخيص المركبة والملكية والتأمين وصور السيارة.</div>`;}
-function renderAdminPeople(){return `${pageHeading('إدارة الحسابات','الملاك والسائقون','عرض مبدئي للشركاء والسائقين المسجلين.')}
- <div class="stats-grid">${statCard('♙','ملاك مسجلون','3','بيانات حسابات تجريبية')}${statCard('⌖','سائقون','2','منهم حساب تجريبي')}${statCard('✓','ملفات مكتملة','0','لا يوجد تحقق حقيقي')}${statCard('!','ملفات تحتاج مراجعة','2','مستندات غير متصلة')}</div><div class="panel"><h3>سجل الشركاء</h3><div class="table-wrap"><table><thead><tr><th>الحساب</th><th>نوع الشراكة</th><th>السيارات</th><th>حالة الملف</th></tr></thead><tbody><tr><td>مالك تجريبي 1</td><td>مالك مستقل</td><td>3</td><td><span class="status orange">مراجعة مستندات</span></td></tr><tr><td>شريك أسطول تجريبي</td><td>أسطول متعاقد</td><td>2</td><td><span class="status green">بيانات افتراضية</span></td></tr></tbody></table></div></div>`;}
+function renderAdminVehicles(){
+ const vehicles=adminFleet.vehicles||[];
+ const pending=vehicles.filter(v=>v.approval_status==="pending");
+ const approved=vehicles.filter(v=>v.approval_status==="approved");
+ const statusLabel={draft:"مسودة",pending:"بانتظار الاعتماد",approved:"منشورة",rejected:"مرفوضة",suspended:"موقوفة"};
+ return `${pageHeading("إدارة الأسطول","السيارات والنشر","أضف السيارات والأسعار والصور وجدول العمل. الاعتماد ينشر السيارة فورًا في واجهة العملاء.",'<button class="btn btn-primary" data-action="add-car">+ إضافة سيارة</button>')}
+ <div class="stats-grid">
+  ${statCard("🚘","كل السيارات",vehicles.length,"ملفات مركبات")}
+  ${statCard("⌛","تنتظر الاعتماد",pending.length,"تحتاج قرارًا")}
+  ${statCard("✓","منشورة للعملاء",approved.length,"معتمدة")}
+  ${statCard("▣","مستندات بانتظار المراجعة",vehicles.reduce((n,v)=>n+Number(v.pending_documents||0),0),"ترخيص وتأمين")}
+ </div>
+ <div class="panel">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>سجل السيارات</h2><p>اللوحة والأسعار والمالك والمستندات وحالة النشر</p></div><button class="btn btn-outline btn-small" data-action="reload-fleet">تحديث البيانات</button></div>
+  ${vehicles.length?`<div class="admin-vehicle-list">${vehicles.map(v=>{
+   const status=v.approval_status||"draft";
+   const ownerStatus=v.owner_status||"pending";
+   return `<article class="admin-vehicle-card">
+    <div class="admin-vehicle-main">
+     <div class="admin-vehicle-image">${v.image_url?`<img src="${escapeHtml(v.image_url)}" alt="${escapeHtml(v.make)} ${escapeHtml(v.model)}" loading="lazy">`:"🚘"}</div>
+     <div class="admin-vehicle-copy">
+      <div class="admin-card-title"><b>${escapeHtml(v.make)} ${escapeHtml(v.model)}</b><span class="status ${status==="approved"?"green":status==="pending"?"orange":status==="rejected"?"red":"gray"}">${statusLabel[status]||status}</span></div>
+      <small>موديل ${v.model_year} · لوحة ${escapeHtml(v.plate_number)} · ${v.seats} مقاعد</small>
+      <small>المالك: ${escapeHtml(v.owner_name)} · ${ownerStatus==="approved"?"ملف مالك معتمد":"ملف المالك غير معتمد"}</small>
+      <small>المناطق: ${escapeHtml((v.service_zones||[]).join("، "))}</small>
+      <div class="admin-price-chips">${Object.entries(v.package_prices||{}).map(([k,val])=>`<span>${({mini:"ميني",classic:"كلاسيك",wedding:"زفاف",royal:"رويال"}[k]||k)}: ${money(Number(val))}</span>`).join("")}</div>
+     </div>
+    </div>
+    <div class="admin-vehicle-docs">
+      <div class="admin-subhead"><b>المستندات</b><button class="text-link" data-action="add-vehicle-doc" data-id="${v.id}">+ إضافة مستند</button></div>
+      ${(v.documents||[]).length?(v.documents||[]).map(doc=>`<div class="doc-review-row"><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(doc.documentType)}</a><span class="status ${doc.reviewStatus==="approved"?"green":doc.reviewStatus==="rejected"?"red":"orange"}">${doc.reviewStatus==="approved"?"معتمد":doc.reviewStatus==="rejected"?"مرفوض":"قيد المراجعة"}</span>${doc.reviewStatus==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="vehicle" data-id="${doc.id}" data-decision="approve">اعتماد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="vehicle" data-id="${doc.id}" data-decision="reject">رفض</button>`:""}<small>${doc.expiresOn||"بدون تاريخ انتهاء"}</small></div>`).join(""):"<small>لم تتم إضافة مستندات. راجع الترخيص والتأمين ورقيًا قبل النشر.</small>"}
+    </div>
+    <div class="admin-vehicle-actions">
+      <button class="btn btn-outline btn-small" data-action="edit-car" data-id="${v.id}">تعديل السيارة والأسعار</button>
+      <button class="btn btn-outline btn-small" data-action="add-rule" data-id="${v.id}">جدول الإتاحة</button>
+      ${status!=="approved"?`<button class="btn btn-primary btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="approved">اعتماد ونشر</button>`:`<button class="btn btn-danger btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="suspended">إيقاف النشر</button>`}
+      ${status==="pending"||status==="draft"?`<button class="btn btn-danger btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="rejected">رفض</button>`:""}
+    </div>
+   </article>`;
+  }).join("")}</div>`:`<div class="empty-state"><div class="empty-icon">🚘</div><b>لا توجد سيارات حتى الآن</b><p>أضف أول سيارة، وحدد المالك والأسعار والصورة وجدول العمل، ثم اعتمدها للنشر.</p><button class="btn btn-primary" data-action="add-car">إضافة أول سيارة</button></div>`}
+ </div>`;
+}
+function renderAdminPeople(){
+ const owners=adminFleet.owners||[],drivers=adminFleet.drivers||[];
+ return `${pageHeading("إدارة الشركاء","الملاك والسائقون","أنشئ حسابات دخول فعلية، وأضف العقود والرخص والبطاقات، ثم اعتمد الملف قبل التشغيل.",'<button class="btn btn-primary" data-action="add-owner">+ إضافة مالك</button> <button class="btn btn-outline" data-action="add-driver">+ إضافة سائق</button>')}
+ <div class="stats-grid">
+  ${statCard("♙","الملاك",owners.length,"حسابات مرتبطة")}
+  ${statCard("✓","ملاك معتمدون",owners.filter(o=>o.onboarding_status==="approved").length,"عقود سارية")}
+  ${statCard("⌖","السائقون",drivers.length,"ملفات سائقين")}
+  ${statCard("▣","سائقون موثقون",drivers.filter(d=>d.verification_status==="verified"&&d.active).length,"جاهزون للإسناد")}
+ </div>
+ <div class="panel">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>الملاك والشركاء</h2><p>لا يمكن اعتماد المالك دون عقد معتمد</p></div></div>
+  ${owners.length?`<div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>النوع</th><th>السيارات</th><th>العقد</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>${owners.map(o=>{
+   const contract=(o.contracts||[])[0];
+   return `<tr><td><b>${escapeHtml(o.display_name)}</b><br><small>${escapeHtml(o.legal_name)}</small></td><td dir="ltr">${escapeHtml(o.phone_e164)}</td><td>${({fleet_partner:"أسطول",independent_owner:"مالك مستقل",premium_partner:"شريك مميز"}[o.kind]||o.kind)}</td><td>${Number(o.vehicle_count||0)}</td><td>${contract?`<a href="${escapeHtml(contract.url)}" target="_blank" rel="noopener noreferrer">فتح العقد</a><br><span class="status ${contract.status==="approved"?"green":"orange"}">${contract.status==="approved"?"معتمد":contract.status==="rejected"?"مرفوض":"قيد المراجعة"}</span>${contract.status==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="owner" data-id="${contract.id}" data-decision="approve">اعتماد العقد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="owner" data-id="${contract.id}" data-decision="reject">رفض</button>`:""}`:'<small>لا يوجد عقد</small>'}</td><td><span class="status ${o.onboarding_status==="approved"?"green":o.onboarding_status==="rejected"?"red":"orange"}">${o.onboarding_status==="approved"?"معتمد":o.onboarding_status==="rejected"?"مرفوض":o.onboarding_status==="suspended"?"موقوف":"بانتظار المراجعة"}</span></td><td>${o.onboarding_status==="approved"?`<button class="btn btn-danger btn-small" data-action="person-status" data-kind="owner" data-id="${o.id}" data-status="suspended">إيقاف</button>`:`<button class="btn btn-primary btn-small" data-action="person-status" data-kind="owner" data-id="${o.id}" data-status="approved">اعتماد المالك</button>`} <button class="btn btn-outline btn-small" data-action="add-owner-contract" data-id="${o.id}">إضافة عقد</button></td></tr>`;
+  }).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لم تتم إضافة ملاك</b><p>أنشئ حساب المالك ورقم الهاتف والعقد، ثم اعتمد ملفه.</p><button class="btn btn-primary" data-action="add-owner">إضافة أول مالك</button></div>`}
+ </div>
+ <div class="panel" style="margin-top:14px">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>السائقون</h2><p>اعتماد السائق يتطلب رخصة قيادة وبطاقة شخصية ساريتين ومعتمدتين</p></div></div>
+  ${drivers.length?`<div class="table-wrap"><table><thead><tr><th>السائق</th><th>الهاتف</th><th>المستندات</th><th>حالة التحقق</th><th>النشاط</th><th>الإجراء</th></tr></thead><tbody>${drivers.map(d=>`<tr><td><b>${escapeHtml(d.display_name)}</b></td><td dir="ltr">${escapeHtml(d.phone_e164)}</td><td>${(d.documents||[]).map(doc=>`<div class="doc-review-row"><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${doc.documentType==="driving_license"?"رخصة قيادة":doc.documentType==="national_id"?"بطاقة شخصية":escapeHtml(doc.documentType)}</a><span class="status ${doc.reviewStatus==="approved"?"green":doc.reviewStatus==="rejected"?"red":"orange"}">${doc.reviewStatus==="approved"?"معتمد":doc.reviewStatus==="rejected"?"مرفوض":"معلق"}</span>${doc.reviewStatus==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="approve">اعتماد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="reject">رفض</button>`:""}</div>`).join("")||"<small>لم ترفع مستندات</small>"}<button class="text-link" data-action="add-driver-doc" data-id="${d.id}">+ مستند</button></td><td><span class="status ${d.verification_status==="verified"?"green":d.verification_status==="rejected"?"red":"orange"}">${d.verification_status==="verified"?"موثق":d.verification_status==="rejected"?"مرفوض":"بانتظار التحقق"}</span></td><td>${d.active&&d.is_active!==false?'<span class="status green">نشط</span>':'<span class="status gray">موقوف</span>'}</td><td>${d.verification_status==="verified"&&d.active?`<button class="btn btn-danger btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="suspended" data-active="false">إيقاف</button>`:`<button class="btn btn-primary btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="verified" data-active="true">اعتماد السائق</button>`}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لا يوجد سائقون</b><p>أضف السائق وبيانات الدخول ومستنداته.</p><button class="btn btn-primary" data-action="add-driver">إضافة أول سائق</button></div>`}
+ </div>`;
+}
+function renderAdminSchedule(){
+ const rules=adminFleet.availabilityRules||[],blocks=adminFleet.availabilityBlocks||[],vehicles=adminFleet.vehicles||[];
+ const days=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+ return `${pageHeading("تنظيم التشغيل","المواعيد والتوافر","حدد أيام وساعات عمل كل سيارة، واحظر فترات الصيانة أو الإجازات.",'<button class="btn btn-primary" data-action="add-rule">+ قاعدة إتاحة</button> <button class="btn btn-outline" data-action="add-block">حظر موعد</button>')}
+ <div class="panel">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>جداول العمل الأسبوعية</h2><p>${rules.length} قاعدة إتاحة محفوظة بتوقيت القاهرة</p></div></div>
+  ${rules.length?`<div class="table-wrap"><table><thead><tr><th>السيارة</th><th>اليوم</th><th>من</th><th>إلى</th><th>فترة الصلاحية</th><th></th></tr></thead><tbody>${rules.map(r=>`<tr><td>${escapeHtml(r.make)} ${escapeHtml(r.model)}<br><small>${escapeHtml(r.plate_number)}</small></td><td>${days[Number(r.weekday)]||r.weekday}</td><td dir="ltr">${String(r.start_time).slice(0,5)}</td><td dir="ltr">${String(r.end_time).slice(0,5)}</td><td>${r.valid_from||"من الآن"} — ${r.valid_to||"مفتوح"}</td><td><button class="btn btn-danger btn-small" data-action="delete-availability" data-kind="rule" data-id="${r.id}">حذف</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty-state"><b>لم يتم تحديد ساعات إتاحة</b><p>أضف جدول العمل الأسبوعي للسيارات المعتمدة.</p></div>'}
+ </div>
+ <div class="panel" style="margin-top:14px">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>فترات الحظر والصيانة</h2><p>${blocks.length} فترة مستقبلية مسجلة. قاعدة البيانات تمنع تداخل الحظر لنفس السيارة.</p></div></div>
+  ${blocks.length?`<div class="table-wrap"><table><thead><tr><th>السيارة</th><th>بداية الحظر</th><th>نهاية الحظر</th><th>السبب</th><th></th></tr></thead><tbody>${blocks.map(b=>`<tr><td>${escapeHtml(b.make)} ${escapeHtml(b.model)}<br><small>${escapeHtml(b.plate_number)}</small></td><td>${new Date(b.starts_at).toLocaleString("ar-EG")}</td><td>${new Date(b.ends_at).toLocaleString("ar-EG")}</td><td>${escapeHtml(b.reason)}</td><td><button class="btn btn-danger btn-small" data-action="delete-availability" data-kind="block" data-id="${b.id}">إلغاء الحظر</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty-state"><b>لا توجد فترات حظر</b><p>استخدم حظر موعد عند صيانة السيارة أو عدم توفرها.</p></div>'}
+ </div>
+ ${!vehicles.length?'<div class="notice warning">أضف سيارة أولًا حتى تتمكن من إدارة مواعيدها.</div>':""}`;
+}
 function renderAdminFinance(){const total=state.bookings.reduce((s,b)=>s+b.total,0);const fees=state.bookings.reduce((s,b)=>s+b.commission,0);return `${pageHeading('الرقابة المالية','المدفوعات والتسويات','افصل قيمة الحجز عن عمولة المنصة ومستحقات مقدم الخدمة.')}
  <div class="stats-grid">${statCard('▤','إجمالي قيمة الحجوزات',money(total),'قيمة التعاملات وليست إيراد زفّة')}${statCard('◈','عمولة تقديرية',money(fees),'افتراض تجريبي فقط')}${statCard('↗','مدفوعات إلكترونية','0','لا يوجد PSP متصل')}${statCard('⌛','تسويات معلقة',state.settlements.length,'سجلات توضيحية')}</div>
  <div class="panel"><h3>حركات حجوزات تجريبية</h3><div class="table-wrap"><table><thead><tr><th>الحجز</th><th>طريقة الدفع</th><th>حالة التحصيل</th><th>قيمة الحجز</th><th>العمولة الافتراضية</th></tr></thead><tbody>${allAdminBookings().map(b=>`<tr><td>${b.id}</td><td>${b.paymentMethod==='cash'?'نقدي':b.paymentMethod==='deposit'?'عربون إلكتروني':'دفع إلكتروني كامل'}</td><td>${b.paymentState==='deposit_due'?'<span class="status orange">عربون مستحق</span>':b.paymentState==='cash_due'?'<span class="status gray">نقدي عند الخدمة</span>':b.paymentState==='paid_simulated'?'<span class="status blue">مدفوع محاكاة</span>':'<span class="status orange">غير محصل</span>'}</td><td>${money(b.total)}</td><td>${money(b.commission)}</td></tr>`).join('')}</tbody></table></div></div><div class="notice warning">لا يتم تحصيل أو تحويل أي أموال في هذا النظام التجريبي. نسبة العمولة 12% مستخدمة فقط كافتراض توضيحي وليست نسبة تعاقدية معتمدة.</div>`;}
