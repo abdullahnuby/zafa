@@ -41,6 +41,15 @@ test("Egyptian mobile numbers normalize consistently for customer identities", (
   assert.equal(normalizeEgyptianPhone("123"), null);
 });
 
+test("wedding home page uses real image-led occasion cards and friendly authentication feedback", () => {
+  assert.ok(app.includes("hero-photo"));
+  assert.ok(app.includes("occasion-tile"));
+  assert.ok(app.includes("empty-state-photo"));
+  assert.ok(app.includes("showAuthError"));
+  assert.ok(app.includes("friendlyAuthError"));
+  assert.ok(app.includes("status===404"));
+});
+
 test("PWA service worker invalidates old shell and never caches API data", () => {
   assert.ok(worker.includes("zaffa-shell-v3"));
   assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
