@@ -1,5 +1,6 @@
--- ZAFFA initial PostgreSQL domain schema draft.
--- Not yet applied to a live database. Enforce availability and payment invariants in DB/API,
+-- ZAFFA initial PostgreSQL domain schema.
+-- Applied transactionally to Neon production branch br-super-resonance-bedi3tom.
+-- Enforce availability and payment invariants in DB/API,
 -- not only in the client. All timestamps should be stored in UTC; user-facing schedules use Africa/Cairo.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
@@ -354,3 +355,13 @@ CREATE INDEX ledger_owner_idx ON ledger_entries(owner_id, created_at DESC);
 INSERT INTO packages(code,name_ar,duration_minutes) VALUES
  ('mini','ميني',120),('classic','كلاسيك',180),('wedding','زفاف',300),('royal','رويال',360)
 ON CONFLICT (code) DO NOTHING;
+
+
+CREATE TABLE IF NOT EXISTS public.schema_migrations (
+  version text PRIMARY KEY,
+  description text NOT NULL,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public.schema_migrations(version, description)
+VALUES ('0001_initial', 'Initial ZAFFA marketplace schema')
+ON CONFLICT (version) DO NOTHING;
