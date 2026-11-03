@@ -104,7 +104,7 @@ function renderCustomerBookings(){
 }
 function renderFavorites(){const cars=state.cars.filter(c=>state.favorites.includes(c.id)&&c.approval==='approved');return `${pageHeading('اختياراتك','السيارات المفضلة','احتفظ بالسيارات اللي عجبتك وارجعلها وقت ما تحب.')}${cars.length?`<div class="car-grid">${cars.map(carCard).join('')}</div>`:`<div class="panel empty-state"><div class="empty-icon">♡</div><b>مفيش سيارات في المفضلة</b><p>اضغط على علامة القلب في أي سيارة علشان تحفظها هنا.</p><button class="btn btn-primary" data-action="go" data-view="cars">تصفح السيارات</button></div>`}`;}
 function renderCustomerAccount(){const p=currentProfile;return `${pageHeading('بياناتك','حسابي','بيانات الملف الشخصي وإعدادات التواصل.')}
- <div class="panel" style="max-width:720px">${p?`<div class="profile-card" style="border:0;padding:0 0 18px"><div class="avatar" style="width:50px;height:50px;font-size:20px">◎</div><div><b style="font-size:14px">${escapeHtml(p.displayName)}</b><small>${escapeHtml(p.email||'')} · حساب موثق بالبريد</small></div></div><div class="profile-grid"><div class="profile-card"><span class="profile-icon">☎</span><div><b>رقم الهاتف</b><small>${escapeHtml(p.phone)}</small></div></div><div class="profile-card"><span class="profile-icon">⌖</span><div><b>المدينة</b><small>الأقصر، مصر</small></div></div></div><button class="btn btn-outline" data-action="account" style="margin-top:15px">إدارة الحساب</button>`:'<div class="empty-state"><b>سجّل الدخول لإدارة حسابك</b><p>حسابك يحفظ بيانات التواصل والحجوزات.</p><button class="btn btn-primary" data-action="account">تسجيل الدخول</button></div>'}</div>`;}
+ <div class="panel" style="max-width:720px">${p?`<div class="profile-card" style="border:0;padding:0 0 18px"><div class="avatar" style="width:50px;height:50px;font-size:20px">◎</div><div><b style="font-size:14px">${escapeHtml(p.displayName)}</b><small>رقم الموبايل: ${escapeHtml(p.phone||'')}</small></div></div><div class="profile-grid"><div class="profile-card"><span class="profile-icon">☎</span><div><b>رقم الهاتف</b><small>${escapeHtml(p.phone)}</small></div></div><div class="profile-card"><span class="profile-icon">⌖</span><div><b>المدينة</b><small>الأقصر، مصر</small></div></div></div><button class="btn btn-outline" data-action="account" style="margin-top:15px">إدارة الحساب</button>`:'<div class="empty-state"><b>سجّل الدخول لإدارة حسابك</b><p>حسابك يحفظ بيانات التواصل والحجوزات.</p><button class="btn btn-primary" data-action="account">تسجيل الدخول</button></div>'}</div>`;}
 
 function ownerBookings(){return state.bookings.filter(b=>b.ownerId==='owner1');}
 function renderOwnerOverview(){const list=ownerBookings();const pending=list.filter(b=>b.status==='pending_owner');const revenue=list.filter(b=>['confirmed','driver_assigned','ready','in_progress','completed'].includes(b.status)).reduce((s,b)=>s+b.total-b.commission,0);return `${pageHeading('مساحة الشريك','أهلاً بيك في زفّة','إدارة سياراتك وطلبات الحجز والتسويات من مكان واحد.',`<button class="btn btn-primary" data-action="go" data-view="owner-vehicles">+ أضف سيارة</button>`)}
@@ -147,16 +147,29 @@ let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName
 async function getAuthToken(){const t=await authClient.getJWTToken?.();return typeof t==="string"&&t.length>20?t:null;}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
+function normalizeCustomerPhone(value){
+ const raw=String(value||"").replace(/\\D/g,"");
+ let digits=raw;
+ if(digits.startsWith("00"))digits=digits.slice(2);
+ if(digits.startsWith("20")){}
+ else if(digits.startsWith("0"))digits="2"+digits;
+ else digits="20"+digits;
+ return /^201[0125]\\d{8}$/.test(digits)?"+"+digits:null;
+}
+function internalAuthEmail(phone){
+ const digits=String(phone||"").replace(/\\D/g,"");
+ return digits+"@phone.zaffa.invalid";
+}
 function updateAccountButton(){const b=document.querySelector("#account-button");if(b)b.textContent=currentProfile?.displayName||authSession?.user?.name||(authSession?.user?"حسابي":"تسجيل الدخول");}
 function openAuthModal(mode="signin"){
  authMode=mode==="signup"?"signup":"signin";
  const signup=authMode==="signup";
- const signupFields=signup?'<div class="field"><label>الاسم بالكامل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name"></div><div class="field" style="margin-top:10px"><label>رقم الموبايل</label><input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx"></div>':"";
+ const signupFields=signup?'<div class="field"><label>الاسم بالكامل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name"></div>':"";
  const note=pendingBookingCarId
-  ? "تسجيل الدخول مطلوب فقط لإكمال طلب الحجز. تقدر تتصفح السيارات والموقع كله من غير حساب."
-  : "تقدر تتصفح زفّة من غير تسجيل دخول. الحساب مطلوب فقط عند طلب الحجز ومتابعته.";
+  ? "سجّل دخولك بالموبايل وكلمة المرور علشان نكمل طلب الحجز. باقي الموقع متاح للتصفح من غير حساب."
+  : "مش محتاج بريد إلكتروني. رقم الموبايل هو اسم الدخول، وتقدر تتصفح زفّة من غير حساب.";
  const body=`<form id="auth-form">${signupFields}
- <div class="field" style="margin-top:10px"><label>البريد الإلكتروني</label><input name="email" type="email" required autocomplete="email"></div>
+ <div class="field" style="margin-top:10px"><label>رقم الموبايل المصري</label><input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01012345678"></div>
  <div class="field" style="margin-top:10px"><label>كلمة المرور</label><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}"></div>
  <div class="auth-note">${note}</div>
  <button type="button" class="text-link" data-action="auth-mode" data-mode="${signup?"signin":"signup"}">${signup?"لديك حساب؟ تسجيل الدخول":"مستخدم جديد؟ إنشاء حساب"}</button></form>`;
@@ -164,19 +177,41 @@ function openAuthModal(mode="signin"){
 }
 async function submitAuth(){
  const f=document.querySelector("#auth-form");if(!f?.reportValidity())return;const d=new FormData(f);
+ const phone=normalizeCustomerPhone(d.get("phone"));
+ if(!phone){toast("اكتب رقم موبايل مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.");return;}
+ const authEmail=internalAuthEmail(phone);
+ const password=String(d.get("password")||"");
  const signupDetails=authMode==="signup"?{
   displayName:String(d.get("name")||"").trim(),
-  phone:String(d.get("phone")||"").trim()
+  phone
  }:null;
  try{
   const r=authMode==="signup"
-   ?await authClient.signUp.email({name:signupDetails.displayName,email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")})
-   :await authClient.signIn.email({email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")});
-  if(r?.error)throw new Error(r.error.message||r.error.code||"AUTH_FAILED");
+   ?await authClient.signUp.email({name:signupDetails.displayName,email:authEmail,password})
+   :await authClient.signIn.email({email:authEmail,password});
+  if(r?.error){
+   const code=String(r.error.code||"");
+   if(authMode==="signup"&&/USER_ALREADY_EXISTS|EMAIL_ALREADY_EXISTS|DUPLICATE/.test(code)){
+    throw new Error("رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول.");
+   }
+   throw new Error(r.error.message||code||"AUTH_FAILED");
+  }
   const session=await authClient.getSession();authSession=session?.data||null;
-  if(!authSession?.user){toast("تم إنشاء طلب الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.");return;}
+  if(!authSession?.user){
+   if(authMode==="signup"){
+    toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");
+    openAuthModal("signin");
+    return;
+   }
+   throw new Error("تعذر استعادة جلسة الدخول.");
+  }
   await loadProfile(signupDetails);
- }catch(e){toast(e?.message||"تعذر تسجيل الدخول. راجع بيانات الحساب.");}
+ }catch(e){
+  const message=String(e?.message||"");
+  toast(/already exists|USER_ALREADY_EXISTS|EMAIL_ALREADY_EXISTS/i.test(message)
+    ?"رقم الموبايل مسجل بالفعل. سجل الدخول بدل إنشاء حساب جديد."
+    :message||"تعذر تسجيل الدخول. راجع رقم الموبايل وكلمة المرور.");
+ }
 }
 async function loadProfile(signupDetails=null){
  const token=await getAuthToken();if(!token)throw new Error("تعذر الحصول على جلسة آمنة.");
@@ -253,7 +288,7 @@ function editCar(id){const c=carById(id);if(!c)return;openModal('بيانات ا
 
 document.addEventListener('click',event=>{
  const btn=event.target.closest('[data-action]');if(!btn)return;const action=btn.dataset.action;const id=btn.dataset.id;
- if(action==='account'){if(authSession?.user){if(currentProfile)openModal('حسابك',`<div class="profile-card"><div class="profile-icon">◎</div><div><b>${escapeHtml(currentProfile.displayName)}</b><small>${escapeHtml(currentProfile.email||'')} · ${escapeHtml(currentProfile.phone||'')}</small></div></div>`,`<button class="btn btn-danger" data-action="sign-out">تسجيل الخروج</button><button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);else openProfileModal();}else openAuthModal();}
+ if(action==='account'){if(authSession?.user){if(currentProfile)openModal('حسابك',`<div class="profile-card"><div class="profile-icon">◎</div><div><b>${escapeHtml(currentProfile.displayName)}</b><small>رقم الموبايل: ${escapeHtml(currentProfile.phone||'')}</small></div></div>`,`<button class="btn btn-danger" data-action="sign-out">تسجيل الخروج</button><button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);else openProfileModal();}else openAuthModal();}
  else if(action==='auth-mode')openAuthModal(btn.dataset.mode);
  else if(action==='auth-submit')submitAuth();
  else if(action==='profile-submit')submitProfile();
