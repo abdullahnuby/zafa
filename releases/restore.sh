@@ -19,13 +19,24 @@ if [[ "${#parts[@]}" -ne 9 ]]; then
   exit 1
 fi
 
+if base64 --decode </dev/null >/dev/null 2>&1; then
+  decoder=(base64 --decode)
+else
+  decoder=(base64 -D)
+fi
+
 {
   for part in "${parts[@]}"; do
     tr -d '\r\n ' < "$part"
   done
-} | base64 --decode > "$ARCHIVE"
+} | "${decoder[@]}" > "$ARCHIVE"
 
-ACTUAL_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+if command -v sha256sum >/dev/null 2>&1; then
+  ACTUAL_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+else
+  ACTUAL_SHA256="$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')"
+fi
+
 if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
   echo "Archive SHA-256 mismatch. Expected $EXPECTED_SHA256; got $ACTUAL_SHA256" >&2
   exit 1
