@@ -9,6 +9,7 @@ import paymentSettings from "../../lib/admin-api/payment-settings.js";
 import assignDriver from "../../lib/admin-api/assign-driver.js";
 import availability from "../../lib/admin-api/availability.js";
 import vehicles from "../../lib/admin-api/vehicles.js";
+import vehiclePhotos from "../../lib/admin-api/vehicle-photos.js";
 
 const routes = {
   "cash-payment-confirmation": cashPaymentConfirmation,
@@ -21,7 +22,8 @@ const routes = {
   "payment-settings": paymentSettings,
   "assign-driver": assignDriver,
   "availability": availability,
-  "vehicles": vehicles
+  "vehicles": vehicles,
+  "vehicle-photos": vehiclePhotos
 };
 
 export default async function handler(req, res) {
