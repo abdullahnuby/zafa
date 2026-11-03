@@ -3,48 +3,43 @@
 **Date:** 2026-11-03  
 **Repository:** `abdullahnuby/zafa`, branch `main`  
 **Production site:** https://zafa-orcin.vercel.app  
-**Fix commit:** https://github.com/abdullahnuby/zafa/commit/3e20ea0b26b8039e55d5a265db332328168886f9  
-**CI run:** https://github.com/abdullahnuby/zafa/actions/runs/41694899797  
-**Vercel deployment:** https://vercel.com/abdullahelmassry-7339s-projects/zafa/FNooLdgPF45BjxFiKnRLhszCCBDH  
 **Neon:** project `twilight-morning-20216632`, branch `production` (`br-super-resonance-bedi3tom`), database `neondb`
 
-## Issue investigated
+## Customer login issue
 
-The customer login screen reported that the credentials had been validated but the customer profile service rejected the session.
+The customer can pass the password check, but the profile API rejects the bearer token. Code inspection found two connected problems.
 
 ### Root cause
 
-The browser took `authData.session.token` from the Better Auth sign-in response and sent it as `Authorization: Bearer ...`. This value is an opaque session identifier, not the signed JWT expected by ZAFFA's protected APIs. `lib/auth.js` correctly verifies Bearer JWTs against the Neon Auth issuer and JWKS, so the profile request returned HTTP 401 after the password step had succeeded.
+1. `NEON_AUTH_BASE_URL` contains the route path `/neondb/auth`. The API previously used the full URL as the expected JWT issuer. Neon Managed Auth uses the service **origin** as the JWT `iss` value, so comparing it with the full path rejects a valid JWT.
+2. The previous client-side repair switched away from Neon SDK's injected session JWT. The Managed SDK captures the `set-auth-jwt` response header and injects that signed JWT into `session.token`. The public `token()` client route is not the correct extraction path for this app's current SDK adapter behavior.
 
-### Code changes
+### Changes made
 
-- Added `lib/client-auth-token.mjs` as the shared, testable JWT retrieval helper.
-- The helper calls `authClient.token()` and accepts only `result.data.token`.
-- `app.js` now uses that helper for post-login profile loading and session restoration.
-- Removed the path that forwards `authData.session.token` as an API bearer credential.
-- Updated `test/guest-access.test.mjs` to guard against reintroducing the old behavior.
-- Added `test/client-auth-token.test.mjs` covering signed JWT retrieval, opaque session-id rejection, absent token, API errors, and missing SDK support.
+- `lib/auth.js` now normalizes `NEON_AUTH_BASE_URL` to `new URL(authBaseUrl).origin` before verifying the JWT. `NEON_AUTH_JWKS_URL` remains the full JWKS URL.
+- `app.js` passes the signed JWT from the successful sign-in response's `session.token` into a shared helper.
+- `lib/client-auth-token.mjs` validates the compact JWT structure and restores the signed JWT from `getSession().data.session.token` after a page reload.
+- `test/client-auth-token.test.mjs` now covers the injected JWT, session restoration, invalid/opaque values, absent tokens, SDK errors, and missing SDK method.
+- `test/guest-access.test.mjs` now asserts the SDK session-token contract and the JWT issuer origin.
+- `sw.js` shell cache was bumped to v4 to force installed mobile PWAs to refresh the updated JavaScript.
 
-## Verification results
+## Data safety
 
-- **GitHub Actions run #64: SUCCESS.** JavaScript syntax checks passed and `npm test` passed **29/29 tests**, with 0 failures and 0 skipped tests.
-- The first run for the code commit exposed a malformed regular-expression assertion in the new test (the application syntax check passed). The test assertion was simplified and corrected in the following commit; the complete run #64 then passed.
-- **Vercel production deployment: READY.** Deployment `dpl_FNooLdgPF45BjxFiKnRLhszCCBDH` points to fix commit `3e20ea0b26b8039e55d5a265db332328168886f9` and has the production alias `zafa-orcin.vercel.app`.
-- The CI tests validate the JWT helper and the profile/API client contract. A real sign-in from the customer's browser has not been performed by this integration; please verify it once in the refreshed browser session.
+- No SQL writes, schema changes, or migrations were performed.
+- No Auth user, customer profile, role, password, or session was edited or deleted.
+- No secret or bearer token was read into source control.
+- Existing customer account records remain in Neon.
 
-## Production/database inspection
+## Verification status
 
-- Neon Managed Auth is enabled with the Better Auth provider on the production branch.
-- Production Vercel environment entries for `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_JWKS_URL` are configured. Secret values were not read or copied into source control.
-- Read-only production counts: 1 application user, 1 linked Auth identity, 1 application role row, 3 recorded migrations, and 4 Auth sessions.
-- Applied migration history: `0001_initial`, `0002_payment_auth_receipts`, `0003_auth_identity_unique_constraint`.
-- The customer's existing application profile and Auth identity were present during inspection.
-- **No production SQL writes, migration, user/profile edit, role edit, password reset, or session deletion was performed.**
+- The isolated issuer-origin change reached production on commit `661ff782afa5e556bd247af6a2c292bd7bd6cd83`, and its GitHub quality workflow and Vercel deployment both succeeded.
+- The subsequent client/session-token correction and PWA cache invalidation are committed separately. Their latest GitHub Actions run and Vercel deployment must be checked before the site is declared fully verified.
+- No live sign-in using the customer's private credentials has been performed by this integration. The final real-account check must still be completed in the customer's browser.
 
-## Remaining product launch gates
+## Remaining launch gates
 
-- Guest visitors can browse the catalogue without an account; sign-in is required only when starting a booking.
-- SMS phone-ownership verification and SMS password recovery still need a provider and webhook. An internal phone alias is not proof of phone ownership.
-- Transactional quote/booking creation, expiring reservation holds, database-enforced no-overlap under concurrent requests, and complete owner/driver dispatch are still launch blockers.
-- No payment gateway is connected. Uploaded InstaPay receipts remain evidence for manual review, and cash must be confirmed by an authorized employee.
+- Guest browsing stays public; sign-in is requested only when starting a booking.
+- SMS phone ownership verification and SMS password recovery still need a provider/webhook.
+- Transactional booking creation, expiring availability holds, concurrent no-overlap protection, and complete owner/driver dispatch remain launch blockers.
+- No payment gateway is connected. InstaPay receipts are manual-review evidence; cash requires authorized confirmation.
 - Keep live reservation acceptance and money collection disabled until booking transaction safety, role-specific end-to-end testing, and Egyptian operating/legal review are complete.
