@@ -32,20 +32,22 @@ export function phoneFromInternalAuthEmail(email) {
   return normalizeEgyptianPhone(phoneDigits);
 }
 async function bootstrapProfileFromAuthIdentity(identity) {
-  const phone = phoneFromInternalAuthEmail(identity.email);
-  const displayName = String(identity.name || "").trim();
-  if (!identity.authUserId || !phone || displayName.length < 2 || displayName.length > 80) return null;
+  if (!identity.authUserId) return null;
   const authUser = await getPool().query(
-    `SELECT id, email FROM neon_auth."user" WHERE id = $1::uuid LIMIT 1`,
+    `SELECT id, email, name FROM neon_auth."user" WHERE id = $1::uuid LIMIT 1`,
     [identity.authUserId]
   );
-  if (!authUser.rows.length || authUser.rows[0].email !== identity.email) return null;
-  const inserted = await getPool().query(
+  if (!authUser.rows.length) return null;
+  const email = String(authUser.rows[0].email || "").trim().toLowerCase();
+  if (identity.email && identity.email.toLowerCase() !== email) return null;
+  const phone = phoneFromInternalAuthEmail(email);
+  const displayName = String(identity.name || authUser.rows[0].name || "").trim();
+  if (!phone || displayName.length < 2 || displayName.length > 80) return null;
+  await getPool().query(
     `INSERT INTO public.users (auth_user_id, phone_e164, display_name, email)
      VALUES ($1::uuid,$2,$3,$4)
-     ON CONFLICT (auth_user_id) DO NOTHING
-     RETURNING id`,
-    [identity.authUserId, phone, displayName, identity.email]
+     ON CONFLICT (auth_user_id) DO NOTHING`,
+    [identity.authUserId, phone, displayName, email]
   );
   const profile = await loadProfile(identity.authUserId);
   if (!profile) return null;
