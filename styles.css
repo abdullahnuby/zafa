@@ -210,3 +210,36 @@ body{background:linear-gradient(180deg,#fff8f6 0%,#fffaf7 48%,#fff7f3 100%);colo
  .admin-dispatch-control{min-width:0;width:100%}
  .admin-dispatch-control select{min-height:38px}
 }
+
+
+/* ZAFFA — vehicle photo upload and three-image gallery */
+.vehicle-photo-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.vehicle-photo-preview:empty{display:none}
+.vehicle-photo-preview-item{min-width:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#faf8f4}
+.vehicle-photo-preview-item img{display:block;width:100%;height:100px;object-fit:cover}
+.vehicle-photo-preview-item small{display:block;padding:6px;color:var(--muted);font-size:8px;overflow-wrap:anywhere}
+.photo-upload-hint{display:block;color:var(--muted);font-size:9px;line-height:1.7;margin-top:5px}
+.admin-photo-section{border-top:1px solid #f0ede8;margin-top:12px;padding-top:10px}
+.admin-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.admin-photo-tile{min-width:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#faf9f6}
+.admin-photo-tile>img{display:block;width:100%;height:100px;object-fit:cover}
+.admin-photo-tile-meta{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap;padding:6px}
+.admin-photo-tile-meta span{color:var(--muted);font-size:8px}
+.admin-photo-tile-meta button{font-size:8px}
+.danger-link{color:var(--red)}
+.photo-pending{display:grid;place-items:center;min-height:90px;background:#f8f2e9;color:var(--orange);font-size:9px}
+.admin-current-photos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:15px}
+.admin-current-photo{min-width:0}
+.admin-current-photo img{display:block;width:100%;height:100px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.admin-current-photo>small{display:block;margin-top:5px;text-align:center;color:var(--muted);font-size:9px}
+.customer-car-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.customer-car-gallery img{display:block;width:100%;height:150px;object-fit:cover;border-radius:12px;background:#f4f1e9}
+@media(max-width:620px){
+ .vehicle-photo-preview{gap:6px}
+ .vehicle-photo-preview-item img{height:82px}
+ .admin-photo-tile>img{height:88px}
+ .admin-photo-grid{gap:6px}
+ .customer-car-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .customer-car-gallery img{height:125px}
+ .admin-current-photo img{height:85px}
+}
