@@ -1,0 +1,55 @@
+name: Publish ZAFFA source files
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-source.yml"
+      - "releases/zaffa-mvp-0.1.0.tar.xz"
+
+permissions:
+  contents: write
+
+jobs:
+  extract-source:
+    if: ${{ !contains(github.event.head_commit.message, '[source extraction]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release archive
+        shell: bash
+        run: |
+          echo "f321b4f6d7f0770e118cd3f5183346087a6ce415bd59ac81bf17c1294aca53e9  releases/zaffa-mvp-0.1.0.tar.xz" | sha256sum --check
+
+      - name: Extract actual project files into repository root
+        shell: bash
+        run: |
+          tar -xJf releases/zaffa-mvp-0.1.0.tar.xz --strip-components=1 -C .
+          test -f package.json
+          test -f index.html
+          test -f app.js
+          test -f styles.css
+          test -f server.mjs
+          test -f database/schema.sql
+          test -f tests/booking-rules.test.mjs
+          test -f tests/server.test.mjs
+
+      - name: Run project tests
+        run: npm test
+
+      - name: Commit real source files to main
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .gitignore README.md CHANGELOG.md HANDOFF_LATEST.md index.html app.js styles.css package.json server.mjs booking-rules.mjs manifest.webmanifest sw.js icon.svg database docs tests "ابدأ-من-هنا.md"
+          if git diff --cached --quiet; then
+            echo "Source files already match the repository."
+            exit 0
+          fi
+          git commit -m "Publish ZAFFA MVP 0.1.0 source files [source extraction]"
+          git push origin HEAD:main
