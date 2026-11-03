@@ -25,6 +25,12 @@ Updated: 2026-11-03
 - Receipt upload is checked against the signed-in customer's own pending InstaPay payment.
 - Receipt review and cash confirmation are protected by admin/finance_admin roles and audit logs.
 
+## Customer access
+- The public catalog and marketing pages are guest-accessible; account creation is not required to browse.
+- Customer sign-in is requested only after the customer chooses to start a booking.
+- Customer registration uses one form for name, mobile number, email and password. Existing customers sign in with email and password.
+- Phone OTP is not implemented; the mobile number is a contact field, not an SMS verification claim.
+
 ## Launch boundary — not accepting real reservations yet
 - The public interface is a pre-launch/soft-launch experience. It must not imply that paid bookings are currently available.
 - Production currently has no approved vehicles, real prices, owner inventory or completed bookings.
