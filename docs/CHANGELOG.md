@@ -21,6 +21,7 @@
 - Reworked the public home page with wedding-car photography, occasion shortcuts, a clear search panel, and a three-step journey.
 - Replaced the dark navy-heavy appearance with an ivory, blush, mauve, and champagne palette across desktop, mobile, navigation, cards, and auth modal.
 - Added inline Arabic sign-in error feedback and specific handling for HTTP 404 vs invalid credentials.
-- Added a temporary, credential-free route diagnostic to identify which Neon Auth base path is returning 404.
+- Verified the production Neon Auth base path (`/neondb/auth`): `/sign-in/email` is the valid sign-in route; duplicated `/auth` and `/api/auth` prefixes return 404.
+- Switched authenticated profile loading and session restoration to the supported Neon JWT `token()` endpoint, avoiding an unnecessary post-login `get-session` request.
 - Added Neon Auth base URL/JWKS to Preview only so the temporary diagnostic can be run against the same auth branch without changing production settings.
 - Hero photo: Mark Cantle / Unsplash (Unsplash License). Wedding floral detail: Valdemars Magone / Unsplash (Unsplash License).
