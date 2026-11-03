@@ -52,6 +52,19 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(!app.includes("authClient.getSession()"));
 });
 
+test("brand identity is consistent and infrastructure status is not exposed in the customer header", async () => {
+  assert.doesNotMatch(shell, /backend-status|Neon متصلة|جاري الاتصال/);
+  assert.doesNotMatch(app, /refreshBackendStatus|backend-status|Neon متصلة/);
+  const logo = await read("../logo.svg");
+  const icon = await read("../icon.svg");
+  const manifest = await read("../manifest.webmanifest");
+  assert.match(logo, /زفّة/);
+  assert.match(logo, /ZAFFA/);
+  assert.match(logo, /diamond|M321 126/i);
+  assert.match(icon, /ZAFFA/);
+  assert.match(manifest, /#fff1f3/);
+});
+
 test("PWA service worker invalidates old shell and never caches API data", () => {
   assert.ok(worker.includes("zaffa-shell-v3"));
   assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
