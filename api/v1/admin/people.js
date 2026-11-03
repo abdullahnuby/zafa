@@ -149,6 +149,13 @@ export default async function handler(req, res) {
       if (!["pending", "approved", "rejected", "suspended"].includes(status)) {
         throw new ApiError(400, "INVALID_OWNER_STATUS");
       }
+      if (status === "approved") {
+        const contract = await client.query(
+          "SELECT 1 FROM public.owner_contracts WHERE owner_id=$1::uuid AND status='approved' AND (valid_to IS NULL OR valid_to >= current_date) LIMIT 1",
+          [id]
+        );
+        if (!contract.rows.length) throw new ApiError(409, "OWNER_CONTRACT_REQUIRED");
+      }
       const selected = await client.query("SELECT * FROM public.owners WHERE id = $1::uuid FOR UPDATE", [id]);
       if (!selected.rows.length) throw new ApiError(404, "OWNER_NOT_FOUND");
       before = selected.rows[0];
@@ -161,6 +168,20 @@ export default async function handler(req, res) {
     } else {
       if (status && !["pending", "verified", "rejected", "suspended"].includes(status)) {
         throw new ApiError(400, "INVALID_DRIVER_STATUS");
+      }
+      if (status === "verified") {
+        const docs = await client.query(
+          `SELECT document_type, expires_on, review_status
+             FROM public.driver_documents
+            WHERE driver_id=$1::uuid`,
+          [id]
+        );
+        const valid = docs.rows.filter(doc => doc.review_status === "approved" &&
+          (!doc.expires_on || new Date(doc.expires_on) >= new Date()));
+        const types = new Set(valid.map(doc => doc.document_type));
+        if (!types.has("driving_license") || !types.has("national_id")) {
+          throw new ApiError(409, "DRIVER_DOCUMENTS_REQUIRED");
+        }
       }
       const selected = await client.query("SELECT * FROM public.drivers WHERE id = $1::uuid FOR UPDATE", [id]);
       if (!selected.rows.length) throw new ApiError(404, "DRIVER_NOT_FOUND");
