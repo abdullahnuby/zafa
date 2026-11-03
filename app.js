@@ -671,6 +671,103 @@ function addCar(){
  </form>`;
  openModal("إضافة سيارة جديدة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);
 }
+function validateVehiclePhotoFiles(files,minCount=1,maxCount=3){
+ if(files.length<minCount||files.length>maxCount){
+  toast(minCount===1?"اختر صورة واحدة على الأقل، وبحد أقصى 3 صور.":`يمكنك إضافة ${maxCount} صور كحد أقصى في هذه العملية.`);
+  return false;
+ }
+ const allowed=["image/jpeg","image/png","image/webp"];
+ for(const file of files){
+  if(!allowed.includes(file.type)||file.size<1||file.size>5*1024*1024){
+   toast("الصورة يجب أن تكون JPG أو PNG أو WEBP ولا تتجاوز 5 ميجابايت.");
+   return false;
+  }
+ }
+ return true;
+}
+function renderVehiclePhotoPreviews(input){
+ const preview=document.querySelector("#vehicle-photo-preview");
+ if(!preview)return;
+ vehiclePhotoPreviewUrls.forEach(url=>URL.revokeObjectURL(url));
+ vehiclePhotoPreviewUrls=[];
+ const files=[...(input.files||[])];
+ const max=Number(input.dataset.maxPhotos||3);
+ if(files.length>max||!validateVehiclePhotoFiles(files,0,max)){
+  input.value="";
+  preview.innerHTML="";
+  return;
+ }
+ preview.innerHTML=files.map((file,index)=>{
+  const url=URL.createObjectURL(file);vehiclePhotoPreviewUrls.push(url);
+  return `<div class="vehicle-photo-preview-item"><img src="${url}" alt="معاينة الصورة ${index+1}"><small>${escapeHtml(file.name)} · ${(file.size/1024/1024).toFixed(1)} MB</small></div>`;
+ }).join("");
+}
+async function uploadVehiclePhotos(vehicleId,files){
+ if(!files.length)throw new Error("INVALID_PHOTO_COUNT");
+ const prepared=await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{
+  action:"presign",vehicleId,
+  files:files.map(file=>({contentType:file.type,size:file.size}))
+ });
+ const uploads=prepared.uploads||[];
+ const mediaIds=uploads.map(item=>item.id);
+ if(uploads.length!==files.length)throw new Error("PHOTO_UPLOAD_PREPARATION_FAILED");
+ try{
+  for(let i=0;i<uploads.length;i++){
+   const item=uploads[i],file=files[i];
+   const response=await fetch(item.uploadUrl,{
+    method:"PUT",
+    mode:"cors",
+    headers:{"Content-Type":item.contentType},
+    body:file,
+    cache:"no-store"
+   });
+   if(!response.ok)throw new Error("PHOTO_UPLOAD_FAILED");
+  }
+  return await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{
+   action:"complete",vehicleId,mediaIds
+  });
+ }catch(error){
+  await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{
+   action:"cancel",vehicleId,mediaIds
+  }).catch(()=>{});
+  throw error;
+ }
+}
+function openVehiclePhotoManager(vehicleId){
+ const vehicle=adminFleet.vehicles.find(item=>item.id===vehicleId);if(!vehicle)return;
+ const count=(vehicle.images||[]).length,remaining=Math.max(0,3-count);
+ const body=`<div class="admin-current-photos">${(vehicle.images||[]).map((photo,index)=>`<div class="admin-current-photo">${photo.approved&&photo.url?`<img src="${escapeHtml(photo.url)}" alt="صورة السيارة">`:'<div class="photo-pending">رفع غير مكتمل</div>'}<small>${index===0?"الصورة الرئيسية":`صورة ${index+1}`}</small></div>`).join("")||'<div class="empty-state">لا توجد صور مضافة</div>'}</div>
+  ${remaining?`<form id="vehicle-photo-form" data-id="${vehicleId}">
+   <div class="field"><label>اختر حتى ${remaining} ${remaining===1?"صورة إضافية":"صور إضافية"}</label><input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple data-max-photos="${remaining}"><small class="photo-upload-hint">الحد الأقصى 3 صور للسيارة كلها، و5 ميجابايت لكل صورة.</small><div id="vehicle-photo-preview" class="vehicle-photo-preview"></div></div>
+  </form>`:'<div class="notice">وصلت السيارة إلى الحد الأقصى: 3 صور. احذف صورة لإضافة صورة أخرى.</div>'}`;
+ openModal("صور السيارة",body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button>${remaining?'<button class="btn btn-primary" data-action="save-vehicle-photos">رفع الصور</button>':""}`);
+}
+async function saveVehiclePhotos(){
+ const form=document.querySelector("#vehicle-photo-form");if(!form)return;
+ const input=form.elements.photos,files=[...(input?.files||[])].filter(file=>file.size>0);
+ const remaining=Number(input?.dataset.maxPhotos||0);
+ if(!validateVehiclePhotoFiles(files,1,remaining))return;
+ try{
+  await uploadVehiclePhotos(form.dataset.id,files);
+  closeModal();await loadAdminFleet();await refreshVehicleCatalog();render();
+  toast("تم رفع الصور وحفظها بنجاح",true);
+ }catch(error){toast(adminErrorMessage(error));}
+}
+async function deleteAdminVehiclePhoto(vehicleId,mediaId){
+ if(!confirm("حذف هذه الصورة نهائيًا من السيارة؟"))return;
+ try{
+  await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{action:"delete",vehicleId,mediaId});
+  await loadAdminFleet();await refreshVehicleCatalog();render();
+  toast("تم حذف الصورة",true);
+ }catch(error){toast(adminErrorMessage(error));}
+}
+async function setAdminVehiclePrimaryPhoto(vehicleId,mediaId){
+ try{
+  await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{action:"primary",vehicleId,mediaId});
+  await loadAdminFleet();await refreshVehicleCatalog();render();
+  toast("تم تعيين الصورة الرئيسية",true);
+ }catch(error){toast(adminErrorMessage(error));}
+}
 async function saveCar(){
  const f=document.querySelector("#add-car-form");if(!f?.reportValidity())return;
  const d=new FormData(f);
