@@ -27,8 +27,9 @@ test("new customer registration collects contact phone in the same form", () => 
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
-  assert.match(worker, /zaffa-shell-v2/);
+  assert.match(worker, /zaffa-shell-v3/);
   assert.match(worker, /key\.startsWith\("zaffa-shell-"\)/);
   assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(worker, /cache: "no-store"/);
+  assert.match(worker, /client\.navigate\(client\.url\)/);
 });
