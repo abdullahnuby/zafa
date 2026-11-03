@@ -142,37 +142,63 @@ function renderAdminReports(){const all=state.bookings;const completion=all.filt
 
 function go(view){state.view=view;persist();render();window.scrollTo({top:0,behavior:'smooth'});}
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
-let authMode="signin",authSession=null,currentProfile=null;
+let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
 async function getAuthToken(){const t=await authClient.getJWTToken?.();return typeof t==="string"&&t.length>20?t:null;}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
 function updateAccountButton(){const b=document.querySelector("#account-button");if(b)b.textContent=currentProfile?.displayName||authSession?.user?.name||(authSession?.user?"حسابي":"تسجيل الدخول");}
 function openAuthModal(mode="signin"){
- authMode=mode==="signup"?"signup":"signin";const signup=authMode==="signup";
- const body=`<form id="auth-form">${signup?'<div class="field"><label>الاسم بالكامل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name"></div>':""}
+ authMode=mode==="signup"?"signup":"signin";
+ const signup=authMode==="signup";
+ const signupFields=signup?'<div class="field"><label>الاسم بالكامل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name"></div><div class="field" style="margin-top:10px"><label>رقم الموبايل</label><input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx"></div>':"";
+ const note=pendingBookingCarId
+  ? "تسجيل الدخول مطلوب فقط لإكمال طلب الحجز. تقدر تتصفح السيارات والموقع كله من غير حساب."
+  : "تقدر تتصفح زفّة من غير تسجيل دخول. الحساب مطلوب فقط عند طلب الحجز ومتابعته.";
+ const body=`<form id="auth-form">${signupFields}
  <div class="field" style="margin-top:10px"><label>البريد الإلكتروني</label><input name="email" type="email" required autocomplete="email"></div>
  <div class="field" style="margin-top:10px"><label>كلمة المرور</label><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}"></div>
- <div class="auth-note">تسجيل الدخول حاليًا بالبريد الإلكتروني. رقم الهاتف يُستخدم للتواصل، والتحقق برسالة SMS يحتاج إعداد مزوّد رسائل.</div>
+ <div class="auth-note">${note}</div>
  <button type="button" class="text-link" data-action="auth-mode" data-mode="${signup?"signin":"signup"}">${signup?"لديك حساب؟ تسجيل الدخول":"مستخدم جديد؟ إنشاء حساب"}</button></form>`;
  openModal(signup?"إنشاء حساب زفّة":"تسجيل الدخول",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="auth-submit">${signup?"إنشاء الحساب":"تسجيل الدخول"}</button>`);
 }
 async function submitAuth(){
  const f=document.querySelector("#auth-form");if(!f?.reportValidity())return;const d=new FormData(f);
+ const signupDetails=authMode==="signup"?{
+  displayName:String(d.get("name")||"").trim(),
+  phone:String(d.get("phone")||"").trim()
+ }:null;
  try{
-  const r=authMode==="signup"?await authClient.signUp.email({name:String(d.get("name")||"").trim(),email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")}):await authClient.signIn.email({email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")});
+  const r=authMode==="signup"
+   ?await authClient.signUp.email({name:signupDetails.displayName,email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")})
+   :await authClient.signIn.email({email:String(d.get("email")||"").trim().toLowerCase(),password:String(d.get("password")||"")});
   if(r?.error)throw new Error(r.error.message||r.error.code||"AUTH_FAILED");
   const session=await authClient.getSession();authSession=session?.data||null;
-  if(!authSession?.user){toast("تم تنفيذ طلب الحساب. تحقق من بريدك ثم سجّل الدخول.");return;}
-  await loadProfile();
+  if(!authSession?.user){toast("تم إنشاء طلب الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.");return;}
+  await loadProfile(signupDetails);
  }catch(e){toast(e?.message||"تعذر تسجيل الدخول. راجع بيانات الحساب.");}
 }
-async function loadProfile(){
+async function loadProfile(signupDetails=null){
  const token=await getAuthToken();if(!token)throw new Error("تعذر الحصول على جلسة آمنة.");
  const r=await fetch("/api/v1/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});const j=await r.json();
  if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_LOAD_FAILED");
- if(!j.profile){openProfileModal();return;}
- applyProfile(j.profile);closeModal();toast("تم تسجيل الدخول بنجاح.",true);
+ if(j.profile){completeAuthentication(j.profile);return;}
+ if(!signupDetails){openProfileModal();return;}
+ const created=await fetch("/api/v1/profile",{
+  method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+  body:JSON.stringify(signupDetails)
+ });
+ const saved=await created.json();
+ if(!created.ok||saved.ok!==true)throw new Error(saved.code||"PROFILE_SAVE_FAILED");
+ completeAuthentication(saved.profile);
+}
+function completeAuthentication(profile){
+ const bookingCarId=pendingBookingCarId;
+ pendingBookingCarId=null;
+ applyProfile(profile);
+ closeModal();
+ if(bookingCarId)showBookingUnavailable(bookingCarId);
+ else toast("تم تسجيل الدخول بنجاح.",true);
 }
 function openProfileModal(){
  const body=`<form id="profile-form"><div class="notice">أكمل بيانات التواصل مرة واحدة حتى نربط حسابك بطلباتك.</div>
@@ -182,31 +208,37 @@ function openProfileModal(){
 }
 async function submitProfile(){
  const f=document.querySelector("#profile-form");if(!f?.reportValidity())return;const d=new FormData(f);
- try{const token=await getAuthToken();const r=await fetch("/api/v1/profile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({displayName:d.get("displayName"),phone:d.get("phone")})});const j=await r.json();if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_SAVE_FAILED");applyProfile(j.profile);closeModal();toast("تم حفظ بيانات حسابك.",true);}
+ try{
+  const token=await getAuthToken();const r=await fetch("/api/v1/profile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({displayName:d.get("displayName"),phone:d.get("phone")})});const j=await r.json();if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_SAVE_FAILED");completeAuthentication(j.profile);}
  catch(e){toast(e?.message==="PHONE_ALREADY_LINKED"?"رقم الهاتف مرتبط بحساب آخر.":e?.message||"تعذر حفظ البيانات.");}
 }
 async function restoreAuthSession(){try{const r=await authClient.getSession();authSession=r?.data||null;if(!authSession?.user){updateAccountButton();return;}await loadProfile();}catch{authSession=null;currentProfile=null;updateAccountButton();}}
-async function signOut(){try{await authClient.signOut();}catch{}authSession=null;currentProfile=null;state.role="customer";state.view="home";render();updateAccountButton();closeModal();toast("تم تسجيل الخروج.",true);}
+async function signOut(){try{await authClient.signOut();}catch{}authSession=null;currentProfile=null;state.role="customer";state.view="home";render();updateAccountButton();closeModal(true);toast("تم تسجيل الخروج.",true);}
 
 function toast(message,good=false){const root=document.querySelector('#toast-root');const el=document.createElement('div');el.className=`toast ${good?'good':''}`;el.textContent=message;root.append(el);setTimeout(()=>el.remove(),3200);}
 function openModal(title,body,footer=''){document.querySelector('#modal-root').innerHTML=`<div class="modal-backdrop" data-action="backdrop"><section class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}"><header class="modal-header"><h2>${title}</h2><button class="modal-close" data-action="close-modal" aria-label="إغلاق">×</button></header><div class="modal-body">${body}</div>${footer?`<footer class="modal-footer">${footer}</footer>`:''}</section></div>`;}
-function closeModal(){document.querySelector('#modal-root').innerHTML='';bookingDraft=null;}
+function closeModal(clearBookingIntent=false){
+ document.querySelector("#modal-root").innerHTML="";
+ bookingDraft=null;
+ if(clearBookingIntent)pendingBookingCarId=null;
+}
+function showBookingUnavailable(id){
+ const car=carById(id);
+ const name=car?`${escapeHtml(car.brand)} ${escapeHtml(car.model)}`:"السيارة المختارة";
+ const body=`<div class="notice warning">الحجز الإلكتروني لم يُفتح بعد. فريق زفّة يستكمل حاليًا نظام تأكيد المواعيد والتوافر.</div>
+ <p style="line-height:1.9;color:var(--ink)">تم تسجيل دخولك بنجاح. ${name} ستظهر لك ضمن السيارات المتاحة عندما يبدأ استقبال الحجوزات الفعلية.</p>
+ <p style="line-height:1.9;color:var(--muted)">لن نطلب منك تحويل عربون أو نؤكد موعدًا قبل تشغيل نظام الحجز والتحقق من توافر السيارة.</p>`;
+ openModal("الحجز الإلكتروني قريبًا",body,`<button class="btn btn-primary" data-action="close-modal">متابعة التصفح</button>`);
+}
 function carDetails(id){const c=carById(id);if(!c)return;activeCarId=id;const body=`<div class="car-art ${escapeHtml(c.color)}" style="height:180px;border-radius:13px">${carArt(c.color)}<span class="car-badge">✓ سيارة معتمدة</span></div><div class="car-title-row" style="margin-top:15px"><div><h3 style="font-size:18px">${escapeHtml(c.brand)} ${escapeHtml(c.model)}</h3><div class="car-sub">${c.year} · ${escapeHtml(c.zone)}</div></div><span class="rating">★ ${c.rating.toFixed(1)} (${c.reviews})</span></div><div class="car-meta"><span>♙ ${c.seats} أفراد</span><span>⚙ ${escapeHtml(c.transmission)}</span><span>✓ بسائق</span><span>${c.ownerType==='fleet'?'أسطول زفّة':'مالك مستقل موثّق'}</span></div><h3 style="margin:12px 0 8px">مميزات السيارة</h3><div class="filter-row">${c.features.map(f=>`<span class="filter-chip">${escapeHtml(f)}</span>`).join('')}</div><div class="summary-box"><div class="summary-line"><span>باقة كلاسيك — 3 ساعات</span><b>${money(c.packagePrices.classic)}</b></div><div class="summary-line"><span>الخدمة</span><b>سيارة بسائق</b></div><div class="summary-line"><span>نطاق التغطية</span><b>${escapeHtml(c.zone)}</b></div></div>${c.ownerType==='independent'?'<div class="notice">الحجز يتطلب موافقة المالك قبل التأكيد النهائي.</div>':''}`;
  openModal('تفاصيل السيارة',body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button><button class="btn btn-primary" data-action="book" data-id="${c.id}">اختار الباقة واحجز</button>`);}
-async function openBooking(id){await refreshPaymentMethods();const c=carById(id);if(!c)return;activeCarId=id;const instapayEnabled=paymentSettings.methods?.instapay?.enabled===true;const cashEnabled=paymentSettings.methods?.cash?.enabled===true;const defaultPayment=instapayEnabled?"instapay_deposit":"cash";bookingDraft={package:'classic',addons:[],payment:defaultPayment,carId:id};const pkgOptions=[['mini','ميني','ساعتان',c.packagePrices.mini],['classic','كلاسيك','3 ساعات',c.packagePrices.classic],['wedding','زفاف','5 ساعات',c.packagePrices.wedding],['royal','رويال','6 ساعات',c.packagePrices.royal]];
- const body=`<form id="booking-form"><div class="notice">أنت بتحجز ${escapeHtml(c.brand)} ${escapeHtml(c.model)} — بسائق. السعر النهائي يتحدد حسب الباقة والإضافات المعروضة.</div><div class="modal-grid"><div class="field"><label>تاريخ المناسبة</label><input required type="date" name="date" min="${isoDate(TODAY)}" value="${escapeHtml(state.searchDate||isoDate(tomorrow))}"></div><div class="field"><label>وقت التجمع</label><input required type="time" name="time" value="17:00"></div><div class="field"><label>مكان التجمع</label><input required name="zone" placeholder="مثال: فندق بالكرنك" value="${escapeHtml(state.searchZone==='وسط الأقصر'?'':state.searchZone)}"></div><div class="field"><label>الوجهة أو خط السير</label><input required name="destination" placeholder="مثال: قاعة النيل"></div><div class="field"><label>نوع المناسبة</label><select name="occasion"><option>زفاف</option><option>خطوبة</option><option>كتب كتاب</option><option>مناسبة خاصة</option></select></div><div class="field"><label>ملاحظات للسائق (اختياري)</label><input name="notes" placeholder="أي تفاصيل مهمة"></div></div><h3 style="margin:16px 0 9px">اختار الباقة</h3><div class="choice-grid">${pkgOptions.map(([key,label,hours,price])=>`<label class="choice ${key==='classic'?'active':''}"><span><b>${label}</b><small>${hours}</small></span><strong>${money(price)}</strong><input type="radio" name="package" value="${key}" ${key==='classic'?'checked':''} hidden></label>`).join('')}</div><h3 style="margin:17px 0 9px">خدمات إضافية</h3><div class="choice-grid"><label class="choice"><span><b>تزيين بسيط</b><small>لمسة زفاف أنيقة</small></span><strong>+350 ج.م</strong><input type="checkbox" name="addon" value="decor" hidden></label><label class="choice"><span><b>ساعة انتظار إضافية</b><small>حسب سياسة الباقة</small></span><strong>+250 ج.م</strong><input type="checkbox" name="addon" value="waiting" hidden></label><label class="choice"><span><b>سيارة ضمن موكب</b><small>طلب تنسيق إضافي</small></span><strong>+500 ج.م</strong><input type="checkbox" name="addon" value="convoy" hidden></label><label class="choice"><span><b>مسافة خارج النطاق</b><small>تحتاج تسعيرًا وموافقة</small></span><strong>تسعير لاحق</strong><input type="checkbox" name="addon" value="distance" hidden></label></div><h3 style="margin:17px 0 9px">طريقة الدفع</h3><div class="choice-grid">
- <label class="choice ${instapayEnabled? (defaultPayment==='instapay_deposit'?'active':''):'disabled'}"><span><b>إنستا باي</b><small>${instapayEnabled?`عربون ${paymentSettings.depositPercent||30}% مع رفع الإيصال للمراجعة`:'غير متاح حتى إضافة بيانات حساب الاستلام'}</small></span><input type="radio" name="payment" value="instapay_deposit" ${instapayEnabled&&defaultPayment==='instapay_deposit'?'checked':''} ${instapayEnabled?'':'disabled'} hidden></label>
- <label class="choice ${defaultPayment==='cash'?'active':''}"><span><b>كاش</b><small>تأكيد الاستلام النقدي من الإدارة</small></span><input type="radio" name="payment" value="cash" ${defaultPayment==='cash'?'checked':''} ${cashEnabled?'':'disabled'} hidden></label>
-</div>
-${instapayEnabled?`<div class="auth-note">بيانات التحويل: ${escapeHtml(paymentSettings.methods.instapay.recipient||'')} · المستفيد: ${escapeHtml(paymentSettings.methods.instapay.displayName||'')}</div>`:'<div class="auth-note">إنستا باي سيتم تفعيله فور تسجيل حساب الاستلام لدى إدارة زفّة.</div>'}<div class="summary-box" id="booking-summary"><div class="summary-line"><span>الباقة الكلاسيك</span><b>${money(c.packagePrices.classic)}</b></div><div class="summary-line"><span>الإضافات</span><b>0 ج.م</b></div><div class="summary-line total"><span>الإجمالي التقديري</span><b>${money(c.packagePrices.classic)}</b></div></div><div class="notice warning">إنستا باي: يلزم رفع إيصال التحويل، وتظل الدفعة قيد المراجعة حتى تطابقها الإدارة. الكاش لا يُسجل مدفوعًا قبل تأكيد الاستلام الفعلي.</div><label style="display:flex;gap:8px;align-items:flex-start;font-size:10px;color:#7d898e;margin-top:10px"><input required type="checkbox" name="terms"> أقر أن تفاصيل الطلب صحيحة، وأفهم أن شروط الإلغاء النهائية ستظهر قبل الإطلاق الفعلي.</label></form>`;
- openModal('تأكيد تفاصيل الحجز',body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="submit-booking">إرسال طلب الحجز</button>`);
- document.querySelectorAll('#booking-form input').forEach(el=>el.addEventListener('change',updateBookingSummary));
- document.querySelectorAll('#booking-form .choice').forEach(el=>el.addEventListener('click',()=>{const inp=el.querySelector('input');if(inp?.type==='radio'){setTimeout(()=>{const group=inp.name;document.querySelectorAll(`#booking-form input[name="${group}"]`).forEach(x=>x.closest('.choice')?.classList.toggle('active',x.checked));},0)}else if(inp?.type==='checkbox'){setTimeout(()=>el.classList.toggle('active',inp.checked),0)}}));
- updateBookingSummary();
+function openBooking(id){
+ const car=carById(id);if(!car)return;
+ if(!authSession?.user){pendingBookingCarId=id;openAuthModal("signin");return;}
+ if(!currentProfile){pendingBookingCarId=id;openProfileModal();return;}
+ showBookingUnavailable(id);
 }
-function getBookingForm(){const form=document.querySelector('#booking-form');if(!form)return null;const fd=new FormData(form);const car=carById(activeCarId);const pkg=fd.get('package')||'classic';const addons=[...fd.getAll('addon')];const quote=calculateQuote({packageCode:pkg,packagePrices:car.packagePrices,addOns:addons.filter(a=>a!=='distance')});const labels=Object.fromEntries(Object.entries(PACKAGE_CODES).map(([k,v])=>[k,v.label]));const hours=Object.fromEntries(Object.entries(PACKAGE_CODES).map(([k,v])=>[k,v.hours]));const addonPrices=Object.fromEntries(Object.entries(ADD_ONS).map(([k,v])=>[k,v.amount]));const addonLabels=Object.fromEntries(Object.entries(ADD_ONS).map(([k,v])=>[k,v.label]));const total=quote.total;return {car,pkg,addons,addonPrices,addonLabels,total,labels,hours,fd};}
-function updateBookingSummary(){const d=getBookingForm();if(!d)return;const addon=d.addons.reduce((s,a)=>s+(d.addonPrices[a]||0),0);const payment=new FormData(document.querySelector('#booking-form')).get('payment')||'instapay_deposit';const due=payment==='instapay_deposit'?calculateDeposit(d.total,Math.round((paymentSettings.depositPercent||30)*100)):null;const node=document.querySelector('#booking-summary');if(node)node.innerHTML=`<div class="summary-line"><span>${d.labels[d.pkg]}</span><b>${money(d.car.packagePrices[d.pkg])}</b></div><div class="summary-line"><span>الإضافات</span><b>${money(addon)}</b></div><div class="summary-line"><span>الإجمالي التقديري</span><b>${money(d.total)}</b></div><div class="summary-line total"><span>${payment==='cash'?'حالة الدفع':'العربون المطلوب (30%)'}</span><b>${payment==='cash'?'مستحق حتى تأكيد الاستلام':money(due)}</b></div>`;}
-function submitBooking(){const form=document.querySelector('#booking-form');if(!form?.reportValidity())return;if(!currentProfile){toast('سجّل الدخول أولًا لربط طلبك بحسابك.');openAuthModal();return;}toast('لم يتم إنشاء حجز: محرك الحجز وفحص التوافر ما زالا قيد التجهيز. لن نسجل طلبًا تجريبيًا أو نؤكد موعدًا غير محجوز.');}
+
 function updateBookingStatus(id,status){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,status);}catch{return toast('لا يمكن تنفيذ انتقال الحالة ده وفق دورة الحجز');}b.status=status;if(status==='completed')b.completedAt=new Date().toISOString();persist();render();toast('تم تحديث حالة الحجز في البيانات التجريبية',true);}
 function bookingDetails(id){const b=bookingById(id);if(!b)return;const c=carById(b.carId)||{};let actions='';if(state.role==='owner'&&b.ownerId==='owner1'&&b.status==='pending_owner'){actions=`<button class="btn btn-danger" data-action="owner-decline" data-id="${b.id}">رفض الطلب</button><button class="btn btn-primary" data-action="owner-accept" data-id="${b.id}">قبول الطلب</button>`}else if(state.role==='customer'&&b.status==='awaiting_payment'){actions=`<span class="status orange">بانتظار مراجعة الدفع</span>`}else if(state.role==='admin'&&b.status==='confirmed'){actions=`<button class="btn btn-primary" data-action="assign-driver" data-id="${b.id}">إسناد السائق التجريبي</button>`}
  const body=`<div class="profile-grid"><div class="profile-card"><div class="profile-icon">▤</div><div><b>رقم الحجز</b><small>${b.id}</small></div></div><div class="profile-card"><div class="profile-icon">◷</div><div><b>حالة الحجز</b><small>${statusInfo(b.status)}</small></div></div></div><div class="summary-box"><div class="summary-line"><span>السيارة</span><b>${escapeHtml(c.brand||'')} ${escapeHtml(c.model||'')}</b></div><div class="summary-line"><span>العميل</span><b>${escapeHtml(b.customerName)}</b></div><div class="summary-line"><span>الموعد</span><b>${escapeHtml(b.date)} — ${escapeHtml(b.time)}</b></div><div class="summary-line"><span>مكان التجمع</span><b>${escapeHtml(b.zone)}</b></div><div class="summary-line"><span>الوجهة</span><b>${escapeHtml(b.destination)}</b></div><div class="summary-line"><span>الباقة</span><b>${escapeHtml(b.packageLabel)} · ${b.hours} ساعات</b></div><div class="summary-line"><span>الإضافات</span><b>${escapeHtml((b.addons||[]).join('، ')||'لا يوجد')}</b></div><div class="summary-line"><span>طريقة الدفع</span><b>${b.paymentMethod==='cash'?'نقدًا':b.paymentMethod==='deposit'?'عربون إلكتروني':'إلكتروني كامل'}</b></div><div class="summary-line"><span>المطلوب الآن</span><b>${b.paymentMethod==='cash'?'حسب السياسة':money(b.paymentDueNow??(b.paymentMethod==='full'?b.total:Math.ceil(b.total*.3)))}</b></div><div class="summary-line total"><span>الإجمالي</span><b>${money(b.total)}</b></div></div>${b.notes?`<div class="notice">ملاحظات: ${escapeHtml(b.notes)}</div>`:''}<div class="notice warning">بيانات الحجز وسير العمل هنا تجريبية ومحفوظة في متصفحك فقط. لا تستخدمها كإثبات حجز.</div>`;
@@ -232,8 +264,8 @@ document.addEventListener('click',event=>{
  else if(action==='favorite'){if(state.favorites.includes(id))state.favorites=state.favorites.filter(x=>x!==id);else state.favorites.push(id);persist();render();toast(state.favorites.includes(id)?'اتضافت للمفضلة':'اتشالت من المفضلة',true);}
  else if(action==='details')carDetails(id);
  else if(action==='book')openBooking(id||activeCarId);
- else if(action==='close-modal')closeModal();
- else if(action==='backdrop'&&event.target.classList.contains('modal-backdrop'))closeModal();
+ else if(action==='close-modal')closeModal(true);
+ else if(action==='backdrop'&&event.target.classList.contains('modal-backdrop'))closeModal(true);
  else if(action==='search-cars'){state.searchDate=document.querySelector('#home-date')?.value||state.searchDate;state.searchZone=document.querySelector('#home-zone')?.value||state.searchZone;state.searchOccasion=document.querySelector('#home-occasion')?.value||state.searchOccasion;persist();browseFilter='all';go('cars');}
  else if(action==='submit-booking')submitBooking();
  else if(action==='booking-details')bookingDetails(id);
@@ -248,7 +280,13 @@ document.addEventListener('click',event=>{
 });
 
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeModal();});
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+ const hadController=Boolean(navigator.serviceWorker.controller);
+ navigator.serviceWorker.addEventListener("controllerchange",()=>{
+  if(hadController&&!window.__zaffaSwReloaded){window.__zaffaSwReloaded=true;location.reload();}
+ });
+ navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+}
 render();
 updateAccountButton();
 restoreAuthSession().catch(()=>{});
