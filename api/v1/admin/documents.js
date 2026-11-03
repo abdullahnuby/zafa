@@ -49,6 +49,18 @@ export default async function handler(req, res) {
           [entityId, documentType, url, expiresOn]
         );
         row = result.rows[0]; table = "driver_documents";
+      } else if (entityType === "owner") {
+        const contractVersion = String(req.body?.contractVersion || "ZAFFA-OWNER-1").trim().slice(0, 80);
+        const validFrom = req.body?.validFrom || null;
+        const validTo = req.body?.validTo || null;
+        const result = await client.query(
+          `INSERT INTO public.owner_contracts
+            (owner_id,contract_version,storage_key,valid_from,valid_to,status)
+           VALUES ($1::uuid,$2,$3,$4::date,$5::date,'pending')
+           RETURNING id,owner_id,contract_version,storage_key,valid_from,valid_to,status`,
+          [entityId, contractVersion, url, validFrom, validTo]
+        );
+        row = result.rows[0]; table = "owner_contracts";
       } else {
         throw new ApiError(400, "INVALID_DOCUMENT_ENTITY");
       }
@@ -69,19 +81,26 @@ export default async function handler(req, res) {
       throw new ApiError(400, "INVALID_DOCUMENT_REVIEW");
     }
     const table = entityType === "vehicle" ? "vehicle_documents" :
-      entityType === "driver" ? "driver_documents" : null;
+      entityType === "driver" ? "driver_documents" :
+      entityType === "owner" ? "owner_contracts" : null;
     if (!table) throw new ApiError(400, "INVALID_DOCUMENT_ENTITY");
 
     const selected = await client.query(`SELECT * FROM public.${table} WHERE id=$1::uuid FOR UPDATE`, [documentId]);
     if (!selected.rows.length) throw new ApiError(404, "DOCUMENT_NOT_FOUND");
     const before = selected.rows[0];
     const reviewStatus = decision === "approve" ? "approved" : "rejected";
-    const updated = await client.query(
-      `UPDATE public.${table}
-          SET review_status=$2, reviewed_by=$3, reviewed_at=now()
-        WHERE id=$1::uuid RETURNING *`,
-      [documentId, reviewStatus, actor.id]
-    );
+    const updated = table === "owner_contracts"
+      ? await client.query(
+          `UPDATE public.owner_contracts SET status=$2, signed_at=CASE WHEN $2='approved' THEN COALESCE(signed_at,now()) ELSE signed_at END
+            WHERE id=$1::uuid RETURNING *`,
+          [documentId, reviewStatus]
+        )
+      : await client.query(
+          `UPDATE public.${table}
+              SET review_status=$2, reviewed_by=$3, reviewed_at=now()
+            WHERE id=$1::uuid RETURNING *`,
+          [documentId, reviewStatus, actor.id]
+        );
     await client.query(
       `INSERT INTO public.audit_logs(actor_user_id,action,entity_type,entity_id,before_data,after_data)
        VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb)`,
