@@ -30,6 +30,7 @@ let adminFleet = { owners: [], drivers: [], vehicles: [], availabilityRules: [],
 let adminFleetLoading = false;
 let adminBookings = [];
 let adminBookingsLoading = false;
+let vehiclePhotoPreviewUrls = [];
 
 const roleConfig = {
   customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','🏡'],['cars','السيارات','🚘'],['bookings','حجوزاتي','🗓️'],['favorites','المفضلة','💗'],['account','حسابي','👤']]},
@@ -372,7 +373,15 @@ function adminErrorMessage(error){
   OWNER_CONTRACT_REQUIRED:"أضف عقد المالك وراجعه واعتمده قبل تفعيل الحساب.",
   DRIVER_DOCUMENTS_REQUIRED:"لا يمكن اعتماد السائق قبل مراجعة رخصة القيادة والبطاقة الشخصية.",
   DRIVER_NOT_VERIFIED_OR_INACTIVE:"السائق غير موثق أو غير نشط.",
-  VEHICLE_PHOTO_REQUIRED:"أضف صورة رئيسية للسيارة قبل نشرها.",
+  VEHICLE_PHOTO_REQUIRED:"أضف صورة واحدة على الأقل للسيارة قبل نشرها.",
+  INVALID_PHOTO_COUNT:"اختر من صورة واحدة إلى 3 صور فقط.",
+  INVALID_VEHICLE_PHOTO_FILE:"الصور المسموحة JPG أو PNG أو WEBP، وبحد أقصى 5 ميجابايت للصورة.",
+  VEHICLE_PHOTO_LIMIT_REACHED:"وصلت السيارة إلى الحد الأقصى وهو 3 صور.",
+  INVALID_UPLOADED_VEHICLE_PHOTO:"تعذر التحقق من الصورة المرفوعة. اختر صورة سليمة وحاول مرة أخرى.",
+  VEHICLE_PHOTO_NOT_FOUND:"الصورة غير موجودة أو سبق حذفها.",
+  INVALID_MEDIA_ID:"معرّف الصورة غير صحيح.",
+  INVALID_PHOTO_COMPLETION:"تعذر إكمال رفع الصور.",
+  INVALID_PHOTO_CANCELLATION:"تعذر إلغاء رفع الصور. حدّث بيانات السيارة وحاول مرة أخرى.",
   VEHICLE_DOCUMENTS_PENDING:"هناك مستندات سيارة لم تتم مراجعتها بعد.",
   VEHICLE_LICENSE_AND_INSURANCE_REQUIRED:"يجب إضافة ترخيص المركبة ووثيقة التأمين واعتمادهما قبل النشر.",
   DUPLICATE_PLATE_NUMBER:"رقم اللوحة مسجل لسيارة أخرى.",
@@ -587,8 +596,16 @@ function showBookingUnavailable(id){
  <p style="line-height:1.9;color:var(--muted)">لن نطلب منك تحويل عربون أو نؤكد موعدًا قبل تشغيل نظام الحجز والتحقق من توافر السيارة.</p>`;
  openModal("الحجز الإلكتروني قريبًا",body,`<button class="btn btn-primary" data-action="close-modal">متابعة التصفح</button>`);
 }
-function carDetails(id){const c=carById(id);if(!c)return;activeCarId=id;const body=`<div class="car-art ${escapeHtml(c.color)}" style="height:180px;border-radius:13px">${carArt(c.color)}<span class="car-badge">✓ سيارة معتمدة</span></div><div class="car-title-row" style="margin-top:15px"><div><h3 style="font-size:18px">${escapeHtml(c.brand)} ${escapeHtml(c.model)}</h3><div class="car-sub">${c.year} · ${escapeHtml(c.zone)}</div></div><span class="rating">★ ${c.rating.toFixed(1)} (${c.reviews})</span></div><div class="car-meta"><span>♙ ${c.seats} أفراد</span><span>⚙ ${escapeHtml(c.transmission)}</span><span>✓ بسائق</span><span>${c.ownerType==='fleet'?'أسطول زفّة':'مالك مستقل موثّق'}</span></div><h3 style="margin:12px 0 8px">مميزات السيارة</h3><div class="filter-row">${c.features.map(f=>`<span class="filter-chip">${escapeHtml(f)}</span>`).join('')}</div><div class="summary-box"><div class="summary-line"><span>باقة كلاسيك — 3 ساعات</span><b>${money(c.packagePrices.classic)}</b></div><div class="summary-line"><span>الخدمة</span><b>سيارة بسائق</b></div><div class="summary-line"><span>نطاق التغطية</span><b>${escapeHtml(c.zone)}</b></div></div>${c.ownerType==='independent'?'<div class="notice">الحجز يتطلب موافقة المالك قبل التأكيد النهائي.</div>':''}`;
- openModal('تفاصيل السيارة',body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button><button class="btn btn-primary" data-action="book" data-id="${c.id}">اختار الباقة واحجز</button>`);}
+function carDetails(id){
+ const c=carById(id);if(!c)return;activeCarId=id;
+ const photos=(c.images||[]).map(item=>item.url||item).filter(Boolean).slice(0,3);
+ if(!photos.length&&c.imageUrl)photos.push(c.imageUrl);
+ const gallery=photos.length
+  ? `<div class="customer-car-gallery">${photos.map((url,index)=>`<img src="${escapeHtml(url)}" alt="${escapeHtml(c.brand)} ${escapeHtml(c.model)} — صورة ${index+1}" loading="lazy">`).join("")}</div>`
+  : `<div class="car-art ${escapeHtml(c.color)}" style="height:180px;border-radius:13px">${carArt(c.color)}<span class="car-badge">✓ سيارة معتمدة</span></div>`;
+ const body=`${gallery}<div class="car-title-row" style="margin-top:15px"><div><h3 style="font-size:18px">${escapeHtml(c.brand)} ${escapeHtml(c.model)}</h3><div class="car-sub">${c.year} · ${escapeHtml(c.zone)}</div></div><span class="rating">★ ${c.rating.toFixed(1)} (${c.reviews})</span></div><div class="car-meta"><span>♙ ${c.seats} أفراد</span><span>⚙ ${escapeHtml(c.transmission)}</span><span>✓ بسائق</span><span>${c.ownerType==='fleet'?'أسطول زفّة':'مالك مستقل موثّق'}</span></div><h3 style="margin:12px 0 8px">مميزات السيارة</h3><div class="filter-row">${c.features.map(f=>`<span class="filter-chip">${escapeHtml(f)}</span>`).join('')}</div><div class="summary-box"><div class="summary-line"><span>باقة كلاسيك — 3 ساعات</span><b>${money(c.packagePrices.classic)}</b></div><div class="summary-line"><span>الخدمة</span><b>سيارة بسائق</b></div><div class="summary-line"><span>نطاق التغطية</span><b>${escapeHtml(c.zone)}</b></div></div>${c.ownerType==='independent'?'<div class="notice">الحجز يتطلب موافقة المالك قبل التأكيد النهائي.</div>':''}`;
+ openModal('تفاصيل السيارة',body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button><button class="btn btn-primary" data-action="book" data-id="${c.id}">اختار الباقة واحجز</button>`);
+}
 function openBooking(id){
  const car=carById(id);if(!car)return;
  if(!authSession?.user){pendingBookingCarId=id;openAuthModal("signin");return;}
@@ -626,8 +643,14 @@ function addCar(){
    <div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option><option>8</option></select></div>
    <div class="field"><label>ناقل الحركة</label><select name="transmission"><option>أوتوماتيك</option><option>مانيوال</option></select></div>
    <div class="field"><label>مناطق الخدمة</label><input name="zones" required value="وسط الأقصر، الكرنك، العوامية" placeholder="افصل بين المناطق بفاصلة"></div>
-   <div class="field field-wide"><label>رابط الصورة الرئيسية (HTTPS)</label><input name="imageUrl" type="url" required placeholder="https://..."></div>
   </div></div>
+  <div class="admin-form-section"><b>صور السيارة</b>
+   <div class="field field-wide"><label>اختر من صورة إلى 3 صور — JPG أو PNG أو WEBP</label>
+    <input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-max-photos="3">
+    <small class="photo-upload-hint">الحد الأقصى 5 ميجابايت لكل صورة. الصورة الأولى ستكون الصورة الرئيسية ويمكن تغييرها لاحقًا.</small>
+    <div id="vehicle-photo-preview" class="vehicle-photo-preview"></div>
+   </div>
+  </div>
   <div class="admin-form-section"><b>أسعار الباقات بالجنيه</b><div class="modal-grid">
    <div class="field"><label>ميني</label><input name="mini" type="number" min="0" step="1" value="1500"></div>
    <div class="field"><label>كلاسيك — مطلوب</label><input name="classic" type="number" min="1" step="1" required value="2100"></div>
@@ -644,13 +667,15 @@ function addCar(){
    <div class="field"><label>رابط التأمين</label><input name="insuranceUrl" type="url" placeholder="رابط وثيقة التأمين"></div>
    <div class="field"><label>انتهاء التأمين</label><input name="insuranceExpiry" type="date"></div>
   </div></div>
-  <div class="notice warning">السيارة ستُحفظ في انتظار الاعتماد، ولن تظهر للعميل إلا بعد اعتماد المالك ومراجعة المستندات والصورة والضغط على «اعتماد ونشر».</div>
+  <div class="notice warning">السيارة تُحفظ في انتظار المراجعة، ولن تظهر للعملاء قبل اكتمال اعتماد المالك والمستندات والصور.</div>
  </form>`;
  openModal("إضافة سيارة جديدة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);
 }
 async function saveCar(){
  const f=document.querySelector("#add-car-form");if(!f?.reportValidity())return;
  const d=new FormData(f);
+ const photos=d.getAll("photos").filter(file=>file&&file.size>0);
+ if(!validateVehiclePhotoFiles(photos,1,3))return;
  const ownerId=String(d.get("ownerId")||"");
  const schedule=[...f.querySelectorAll('input[name="weekdays"]:checked')].map(el=>({weekday:Number(el.value),startTime:d.get("startTime"),endTime:d.get("endTime")}));
  if(!schedule.length)return toast("اختر يومًا واحدًا على الأقل للإتاحة");
@@ -658,6 +683,7 @@ async function saveCar(){
  const documents=[];
  if(d.get("registrationUrl"))documents.push({documentType:"vehicle_license",url:d.get("registrationUrl"),expiresOn:d.get("registrationExpiry")||null});
  if(d.get("insuranceUrl"))documents.push({documentType:"insurance",url:d.get("insuranceUrl"),expiresOn:d.get("insuranceExpiry")||null});
+ let createdVehicleId=null;
  try{
   const result=await adminApiRequest("/api/v1/admin/vehicles","POST",{
    ownerId:ownerId==="__company__"?null:ownerId,
@@ -665,13 +691,19 @@ async function saveCar(){
    make:d.get("make"),model:d.get("model"),modelYear:Number(d.get("modelYear")),
    plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),transmission:d.get("transmission"),
    serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
-   imageUrl:d.get("imageUrl"),
    prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")},
    schedule,documents,submitForReview:true
   });
+  createdVehicleId=result.vehicle.id;
+  await uploadVehiclePhotos(createdVehicleId,photos);
   closeModal();await loadAdminFleet();await refreshVehicleCatalog();go("admin-vehicles");
-  toast("تم حفظ السيارة في قائمة مراجعة الإدارة",true);
- }catch(e){toast(adminErrorMessage(e));}
+  toast("تم حفظ السيارة ورفع الصور بنجاح",true);
+ }catch(e){
+  if(createdVehicleId){
+   closeModal();await loadAdminFleet();go("admin-vehicles");
+   toast("تم حفظ السيارة، لكن رفع الصور لم يكتمل. افتح السيارة وأعد إضافة الصور.");
+  }else toast(adminErrorMessage(e));
+ }
 }
 function editCar(id){
  const v=adminFleet.vehicles.find(x=>x.id===id);if(!v)return;
@@ -684,12 +716,11 @@ function editCar(id){
   <div class="field"><label>عدد المقاعد</label><input name="seats" type="number" min="2" max="12" value="${v.seats}" required></div>
   <div class="field"><label>ناقل الحركة</label><input name="transmission" value="${escapeHtml(v.transmission||"") }"></div>
   <div class="field field-wide"><label>مناطق الخدمة — افصل بفاصلة</label><input name="zones" value="${escapeHtml((v.service_zones||[]).join("، "))}" required></div>
-  <div class="field field-wide"><label>رابط الصورة الرئيسية</label><input name="imageUrl" type="url" value="${escapeHtml(v.image_url||"")}"></div>
   <div class="field"><label>ميني</label><input name="mini" type="number" min="0" value="${Number(p.mini||0)}"></div>
   <div class="field"><label>كلاسيك</label><input name="classic" type="number" min="1" value="${Number(p.classic||0)}"></div>
   <div class="field"><label>زفاف</label><input name="wedding" type="number" min="0" value="${Number(p.wedding||0)}"></div>
   <div class="field"><label>رويال</label><input name="royal" type="number" min="0" value="${Number(p.royal||0)}"></div>
- </div></form><div class="notice">تعديل بيانات السيارة لا يغيّر حالة الاعتماد. تعديل الصورة يستبدل الصورة الرئيسية المنشورة.</div>`;
+ </div></form><div class="notice">إدارة الصور منفصلة عن بيانات السيارة حتى لا يؤدي تعديل السعر أو البيانات إلى حذف الصور.</div>`;
  openModal("تعديل بيانات السيارة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car-update">حفظ التعديلات</button>`);
 }
 async function saveCarUpdate(){
@@ -700,7 +731,6 @@ async function saveCarUpdate(){
    action:"update",vehicleId:f.dataset.id,make:d.get("make"),model:d.get("model"),
    modelYear:Number(d.get("modelYear")),plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),
    transmission:d.get("transmission"),serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
-   imageUrl:d.get("imageUrl"),
    prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")}
   });
   closeModal();await loadAdminFleet();await refreshVehicleCatalog();render();toast("تم تحديث بيانات السيارة والأسعار",true);
