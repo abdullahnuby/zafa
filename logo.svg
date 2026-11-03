@@ -1,16 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 675" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 670" role="img" aria-labelledby="title desc">
 <title id="title">زفّة | ZAFFA</title>
-<desc id="desc">شعار زفّة: سيارة مناسبات تحت قوس ذهبي مع خاتمي زواج وألماسة</desc>
-<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7e2b6"/><stop offset=".48" stop-color="#e8bd75"/><stop offset="1" stop-color="#bd8845"/></linearGradient></defs>
-<path d="M112 302 C159 95 275 42 372 42 C493 42 593 133 616 305 C622 341 623 370 616 401" fill="none" stroke="url(#gold)" stroke-width="11" stroke-linecap="round"/>
-<g fill="none" stroke="url(#gold)" stroke-width="9"><path d="M306 260 C306 220 332 194 364 194 C398 194 421 222 421 255 C421 277 412 294 397 306"/><path d="M381 260 C381 220 407 194 439 194 C473 194 496 222 496 255 C496 283 480 303 458 312"/></g>
-<path d="M359 194 C348 220 350 250 365 275 C380 251 382 220 370 194" fill="#0d1a2d" stroke="url(#gold)" stroke-width="7" stroke-linejoin="round"/>
-<g stroke="url(#gold)" stroke-width="5" stroke-linejoin="round" fill="none"><path d="M337 141 L360 112 L418 112 L441 141 L389 208 Z"/><path d="M337 141 H441 M360 112 L374 141 L389 208 L405 141 L418 112 M360 112 L389 141 L418 112 M337 141 L374 141 L389 208 L405 141 L441 141"/></g>
-<path d="M66 389 C94 381 139 369 185 343 C221 323 248 301 298 293 C340 286 408 285 455 296 C493 305 526 325 557 351 L598 357 C620 361 641 374 651 392 L659 416 C663 429 653 439 638 439 H89 C70 439 59 429 61 414 Z" fill="#0d1a2d" stroke="url(#gold)" stroke-width="9" stroke-linejoin="round"/>
-<path d="M194 342 C230 318 256 300 300 294 C342 287 408 288 452 298 C488 306 515 327 544 351 C492 360 433 364 370 364 C302 364 245 356 194 342 Z" fill="#0d1a2d" stroke="url(#gold)" stroke-width="7" stroke-linejoin="round"/>
-<path d="M214 343 C249 322 270 307 305 303 C348 297 407 298 447 307 C474 314 497 332 519 350" fill="none" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
-<path d="M84 389 C132 383 173 388 217 415 M542 383 C577 380 614 386 645 406" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
-<g fill="url(#gold)"><circle cx="139" cy="458" r="19"/><circle cx="198" cy="458" r="19"/><circle cx="523" cy="458" r="19"/><circle cx="582" cy="458" r="19"/></g>
-<path d="M451,108 L446,99 L429,86 L421,86 L408,89 L386,92 L398,100 L406,110 L406,114 L400,120 L378,128 L328,136 L343,148 L360,147 L401,140 L425,133 L440,126 L450,116Z M17,95 L17,102 L19,105 L28,110 L38,113 L56,116 L68,116 L69,117 L114,117 L119,116 L127,120 L148,124 L158,124 L159,125 L268,125 L269,124 L288,123 L314,117 L327,110 L333,104 L335,100 L335,92 L333,87 L324,77 L308,70 L286,66 L256,66 L233,70 L215,77 L209,81 L204,88 L204,93 L207,98 L212,101 L223,104 L239,105 L240,106 L276,106 L277,105 L284,105 L285,106 L282,108 L270,111 L197,112 L196,111 L172,111 L163,109 L157,104 L151,65 L105,65 L106,71 L104,73 L77,75 L41,82 L23,89Z M111,101 L109,103 L79,103 L66,101 L62,98 L62,96 L68,92 L79,89 L107,86 L109,88 L109,95Z M249,85 L255,81 L272,79 L278,80 L284,83 L290,91 L278,93 L254,92 L249,89Z M391,66 L391,68 L393,70 L404,74 L426,74 L433,72 L439,68 L437,64 L425,60 L405,60 L397,62Z M246,47 L246,49 L248,51 L261,55 L284,54 L290,52 L294,48 L292,45 L286,42 L274,40 L258,41 L251,43Z M106,46 L106,48 L110,51 L123,54 L140,53 L148,50 L151,47 L149,44 L138,40 L119,40 L111,42Z M51,45 L51,49 L61,53 L68,54 L85,53 L91,51 L95,48 L95,46 L92,43 L83,40 L63,40Z M311,13 L305,6 L302,5 L286,7 L290,12 L290,15 L286,17 L279,17 L277,15 L277,9 L272,8 L258,10 L257,16 L251,20 L247,20 L243,18 L243,14 L245,12 L225,13 L224,14 L224,21 L228,24 L235,26 L254,26 L264,24 L269,21 L279,23 L291,23 L305,20 L311,15Z" transform="translate(125 475)" fill="url(#gold)" fill-rule="evenodd"/>
-<text x="360" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-size="35" font-weight="500" letter-spacing="14" fill="url(#gold)">ZAFFA</text>
+<desc id="desc">شعار زفّة: ماسة وخاتما زواج فوق سيارة مناسبات محاطة بقوس احتفالي، مع الاسم العربي والإنجليزي</desc>
+<defs>
+  <linearGradient id="champagne" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#f3d9ad"/>
+    <stop offset=".5" stop-color="#d7ad76"/>
+    <stop offset="1" stop-color="#b98257"/>
+  </linearGradient>
+  <linearGradient id="plum" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#a87588"/>
+    <stop offset="1" stop-color="#755064"/>
+  </linearGradient>
+</defs>
+
+<!-- Open celebration halo -->
+<path d="M105 310 C137 145 245 63 357 63 C491 63 591 163 615 310"
+      fill="none" stroke="url(#champagne)" stroke-width="11" stroke-linecap="round"/>
+<path d="M111 311 C153 185 245 112 356 112"
+      fill="none" stroke="#f2dfc5" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+
+<!-- Wedding rings and diamond -->
+<g fill="none" stroke="url(#champagne)" stroke-width="11">
+  <circle cx="337" cy="219" r="48"/>
+  <circle cx="395" cy="219" r="48"/>
+</g>
+<path d="M352 182 C337 209 340 239 365 266 C389 239 392 209 377 182"
+      fill="#fff8f6" stroke="url(#champagne)" stroke-width="8" stroke-linejoin="round"/>
+<g fill="#fff8f6" stroke="url(#champagne)" stroke-width="6" stroke-linejoin="round">
+  <path d="M321 126 L344 96 H405 L428 126 L374 197 Z"/>
+  <path d="M321 126 H428 M344 96 L359 126 L374 197 L390 126 L405 96"/>
+  <path d="M344 96 L374 126 L405 96"/>
+</g>
+<path d="M374 126 L359 126 L374 197 L390 126 Z" fill="#f5e5d2" opacity=".8"/>
+
+<!-- Wedding car silhouette -->
+<path d="M77 365
+ C106 359 139 351 174 335
+ L235 305
+ C258 294 282 286 313 283
+ C356 279 409 283 447 291
+ C478 298 507 319 539 344
+ L594 350
+ C619 353 639 367 650 389
+ L660 414
+ C664 428 655 440 637 440
+ H86 C66 440 57 429 61 413
+ L68 386 C70 375 71 369 77 365 Z"
+ fill="#fff8f6" stroke="url(#plum)" stroke-width="10" stroke-linejoin="round"/>
+<path d="M187 333
+ L244 306
+ C266 295 288 289 316 287
+ C357 284 407 287 443 295
+ C472 302 496 321 520 344
+ C472 354 422 359 365 359
+ C303 359 243 350 187 333 Z"
+ fill="#faedf0" stroke="url(#champagne)" stroke-width="7" stroke-linejoin="round"/>
+<path d="M247 307 C272 295 292 292 318 291 C357 288 406 291 440 299"
+ fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".95"/>
+<path d="M84 372 C133 369 169 382 207 410 M535 365 C579 360 613 372 645 397"
+ fill="none" stroke="url(#champagne)" stroke-width="6" stroke-linecap="round"/>
+<path d="M365 360 L365 433" stroke="#e7d3d4" stroke-width="4"/>
+<path d="M83 402 H121 M612 402 H644" stroke="url(#champagne)" stroke-width="5" stroke-linecap="round"/>
+
+<!-- Four stylized wheels / wedding lights -->
+<g fill="#fff8f6" stroke="url(#champagne)" stroke-width="7">
+  <circle cx="151" cy="447" r="24"/>
+  <circle cx="211" cy="447" r="24"/>
+  <circle cx="510" cy="447" r="24"/>
+  <circle cx="570" cy="447" r="24"/>
+</g>
+<g fill="url(#plum)">
+  <circle cx="151" cy="447" r="9"/>
+  <circle cx="211" cy="447" r="9"/>
+  <circle cx="510" cy="447" r="9"/>
+  <circle cx="570" cy="447" r="9"/>
+</g>
+
+<!-- Arabic and English wordmarks -->
+<text x="360" y="560" text-anchor="middle" direction="rtl" unicode-bidi="plaintext"
+      font-family="Cairo, 'Noto Kufi Arabic', Tahoma, sans-serif"
+      font-size="112" font-weight="800" fill="url(#plum)">زفّة</text>
+<text x="360" y="630" text-anchor="middle"
+      font-family="Arial, sans-serif" font-size="36" font-weight="600"
+      letter-spacing="15" fill="url(#champagne)">ZAFFA</text>
 </svg>
