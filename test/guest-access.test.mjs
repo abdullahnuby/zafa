@@ -48,12 +48,8 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-});
-
-test("temporary auth route diagnostic never accepts credentials or exposes user data", async () => {
-  const route = await readFile(new URL("../api/v1/auth-route-diagnostic.js", import.meta.url), "utf8");
-  assert.match(route, /METHOD_NOT_ALLOWED/);
-  assert.doesNotMatch(route, /password|authorization|cookie/i);
+  assert.ok(app.includes("authClient.token?.()"));
+  assert.ok(!app.includes("authClient.getSession()"));
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
