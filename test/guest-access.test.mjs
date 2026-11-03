@@ -55,6 +55,8 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
 test("brand identity is consistent and infrastructure status is not exposed in the customer header", async () => {
   assert.doesNotMatch(shell, /backend-status|Neon متصلة|جاري الاتصال/);
   assert.doesNotMatch(app, /refreshBackendStatus|backend-status|Neon متصلة/);
+  const css = await read("../styles.css");
+  assert.doesNotMatch(css, /backend-status|backend-dot/);
   const logo = await read("../logo.svg");
   const icon = await read("../icon.svg");
   const manifest = await read("../manifest.webmanifest");
