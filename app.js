@@ -184,8 +184,8 @@ function go(view){state.view=view;persist();render();window.scrollTo({top:0,beha
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
-async function getAuthToken(){
- return getAuthBearerToken(authClient);
+async function getAuthToken(sessionJwt=null){
+ return getAuthBearerToken(authClient, sessionJwt);
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
@@ -263,7 +263,9 @@ async function submitAuth(){
   const authData=r?.data||null;
   if(authData?.user)authSession={user:authData.user,session:null};
   stage="token";
-  const jwtToken=await getAuthToken();
+  // Neon Auth injects the signed JWT into session.token via set-auth-jwt.
+  const jwtFromSignIn=authData?.session?.token||null;
+  const jwtToken=await getAuthToken(jwtFromSignIn);
   if(!jwtToken){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
    throw new Error("AUTH_TOKEN_UNAVAILABLE");
