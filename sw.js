@@ -1,4 +1,4 @@
-const CACHE = "zaffa-shell-v4";
+const CACHE = "zaffa-shell-v5";
 const SHELL_FILES = [
   "/",
   "/index.html",
