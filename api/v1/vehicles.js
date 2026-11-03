@@ -22,6 +22,9 @@ export default async function handler(req, res) {
         v.service_zones,
         v.driver_included,
         o.kind AS owner_type,
+        (SELECT vm.storage_key FROM public.vehicle_media vm
+          WHERE vm.vehicle_id = v.id AND vm.approved = true
+          ORDER BY vm.sort_order, vm.id LIMIT 1) AS image_url,
         COALESCE((
           SELECT jsonb_object_agg(p.code, round(vp.amount_minor::numeric / 100, 2))
           FROM public.vehicle_prices vp
@@ -33,6 +36,7 @@ export default async function handler(req, res) {
       FROM public.vehicles v
       JOIN public.owners o ON o.id = v.owner_id
       WHERE v.approval_status = 'approved'
+        AND o.onboarding_status = 'approved'
         AND v.driver_included = true
       ORDER BY v.created_at DESC
       LIMIT 100
