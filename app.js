@@ -183,8 +183,17 @@ function go(view){state.view=view;persist();render();window.scrollTo({top:0,beha
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
-async function getAuthToken(){
- const token=await authClient.getJWTToken?.();
+async function getAuthToken(sessionToken=null){
+ if(typeof sessionToken==="string"&&sessionToken.length>20)return sessionToken;
+ if(typeof authClient.token!=="function")throw new Error("AUTH_TOKEN_METHOD_UNAVAILABLE");
+ const result=await authClient.token();
+ if(result?.error){
+  const error=new Error(result.error.message||result.error.code||"AUTH_TOKEN_FAILED");
+  error.status=result.error.status||result.error.statusCode||0;
+  error.code=result.error.code||"AUTH_TOKEN_FAILED";
+  throw error;
+ }
+ const token=result?.data?.token;
  return typeof token==="string"&&token.length>20?token:null;
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
@@ -231,13 +240,13 @@ function friendlyAuthError(error,stage="sign-in"){
  const code=String(error?.code||error?.body?.code||"").toLowerCase();
  const raw=String(error?.message||"");
  if(status===404||/http 404/i.test(raw)){
-  if(stage==="token")return "تسجيل الدخول وصل للخدمة، لكن استخراج جلسة الأمان رجع 404. حسابك موجود؛ هنراجع مسار الجلسة.";
+  if(stage==="token")return "خدمة استخراج رمز الأمان لم تستجب على المسار الصحيح. حسابك موجود ولم يتم حذفه؛ جرّب مرة أخرى بعد تحديث الصفحة.";
   if(stage==="profile")return "تمت المصادقة، لكن ملف العميل غير متاح على الخادم حاليًا. حسابك لم يُحذف؛ هنراجع ربط الملف.";
   return "مسار تسجيل الدخول غير متاح على الخدمة. هنراجع الإعدادات، ومش محتاج تنشئ حسابًا جديدًا.";
  }
  if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw)){
   if(stage==="sign-in")return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
-  if(stage==="token")return "تم قبول طلب الحساب، لكن تعذر استخراج جلسة آمنة. جرّب تسجيل الدخول بالحساب نفسه.";
+  if(stage==="token")return "لم تتوفر جلسة أمان صالحة بعد تسجيل الدخول. أعد المحاولة، وحسابك سيظل محفوظًا.";
   return "تم التحقق من بيانات الدخول، لكن خادم ملف العميل رفض الجلسة. حسابك محفوظ ولم يتم حذفه.";
  }
  if(/user already exists|already exists|user_already_exists|email_already_exists/i.test(code+" "+raw))return "رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول بدل إنشاء حساب جديد.";
@@ -263,7 +272,8 @@ async function submitAuth(){
   const authData=r?.data||null;
   if(authData?.user)authSession={user:authData.user,session:null};
   stage="token";
-  const jwtToken=await getAuthToken();
+  const jwtFromSignIn=authData?.session?.token||null;
+  const jwtToken=await getAuthToken(jwtFromSignIn);
   if(!jwtToken){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
    throw new Error("AUTH_TOKEN_UNAVAILABLE");

@@ -37,3 +37,8 @@
 - Do not misreport a 401 from token/profile stages as an incorrect phone/password pair.
 - On an authenticated profile GET, recover a missing application profile from the signed Neon Auth identity only when it matches the internal Egyptian phone alias and the Auth row. A default customer role is added; no privileged role is granted automatically.
 - Add regression tests for the documented JWT method and recovery of orphaned registrations.
+
+## 2026-11-03 — Use Neon JWT plugin endpoint for session tokens
+- The `getJWTToken()` helper in the published Neon adapter delegates to Better Auth `getSession()` and therefore depends on the failing `/get-session` route in this Neon Auth environment.
+- Switched protected API token retrieval to Better Auth's JWT client plugin method `authClient.token()`, which uses the separate `/token` endpoint. The route was probed from the Preview environment and exists (401 without a session cookie is expected).
+- Prefer the JWT injected into the successful sign-in/sign-up response's session when the SDK provides it; otherwise request it through the JWT plugin.
