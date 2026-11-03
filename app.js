@@ -183,7 +183,11 @@ function go(view){state.view=view;persist();render();window.scrollTo({top:0,beha
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
-async function getAuthToken(){const t=await authClient.getJWTToken?.();return typeof t==="string"&&t.length>20?t:null;}
+async function getAuthToken(){
+ const result=await authClient.token?.();
+ const token=result?.data?.token;
+ return typeof token==="string"&&token.length>20?token:null;
+}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
 function normalizeCustomerPhone(value){
@@ -253,8 +257,14 @@ async function submitAuth(){
    ?await authClient.signUp.email({name:signupDetails.displayName,email:authEmail,password})
    :await authClient.signIn.email({email:authEmail,password});
   if(r?.error)throw r.error;
-  stage="session";
-  const session=await authClient.getSession();authSession=session?.data||null;
+  const authData=r?.data||null;
+  if(authData?.user){
+   authSession={user:authData.user,session:authData.session||null};
+  }else{
+   stage="session";
+   const session=await authClient.getSession();
+   authSession=session?.data||null;
+  }
   if(!authSession?.user){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
    throw new Error("تعذر استعادة جلسة الدخول.");
