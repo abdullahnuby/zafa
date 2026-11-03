@@ -42,7 +42,7 @@ test("customer registration and sign-in use phone and password without an email 
 });
 
 test("Neon Auth JWT is retrieved from the direct JWT plugin endpoint", () => {
-  assert.match(app, /authClient\.token\?\.\(\)/);
+  assert.match(app, /authClient\.token\(\)/);
   assert.doesNotMatch(app, /authClient\.getJWTToken\?\.\(\)/);
   assert.match(app, /authData\?\.session\?\.token/);
 });
@@ -74,7 +74,7 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-  assert.ok(app.includes("authClient.token?.()"));
+  assert.ok(app.includes("authClient.token()"));
   assert.ok(!app.includes("authClient.getJWTToken?.()"));
 });
 
