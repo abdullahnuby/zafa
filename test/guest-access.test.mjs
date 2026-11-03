@@ -42,16 +42,17 @@ test("customer registration and sign-in use phone and password without an email 
   assert.ok(profileApi.includes('email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email'));
 });
 
-test("Neon Auth API requests use a signed JWT, never an opaque session identifier", () => {
-  assert.ok(app.includes("getAuthBearerToken(authClient)"));
-  assert.ok(!app.includes("authData?.session?.token"));
-  assert.ok(tokenHelper.includes("authClient.token()"));
-  assert.ok(!app.includes("authClient.getJWTToken?.()"));
+test("Neon Auth API requests use the signed JWT injected into the Managed SDK session", () => {
+  assert.ok(app.includes("getAuthBearerToken(authClient, sessionJwt)"));
+  assert.ok(app.includes("authData?.session?.token"));
+  assert.ok(tokenHelper.includes("result?.data?.session?.token"));
+  assert.ok(tokenHelper.includes("authClient.getSession()"));
+  assert.ok(!tokenHelper.includes("authClient.token()"));
 });
 
 test("orphaned phone identities can be recovered to a customer profile", () => {
-  assert.equal(phoneFromInternalAuthEmail("201550130114@phone.zaffa.invalid"), "+201550130114");
-  assert.equal(phoneFromInternalAuthEmail("201012345678@phone.zaffa.invalid"), "+201012345678");
+  assert.equal(phoneFromInternalAuthEmail("201599998877@phone.zaffa.invalid"), "+201599998877");
+  assert.equal(phoneFromInternalAuthEmail("201599998877@phone.zaffa.invalid"), "+201599998877");
   assert.equal(phoneFromInternalAuthEmail("somebody@example.com"), null);
   assert.equal(phoneFromInternalAuthEmail("201999999999@phone.zaffa.invalid"), null);
 });
@@ -61,11 +62,11 @@ test("a profile lookup bootstraps a missing profile from the signed-in auth iden
 });
 
 test("Egyptian mobile numbers normalize consistently for customer identities", () => {
-  assert.equal(normalizeEgyptianPhone("01012345678"), "+201012345678");
-  assert.equal(normalizeEgyptianPhone("01112345678"), "+201112345678");
-  assert.equal(normalizeEgyptianPhone("+20 12 1234 5678"), "+201212345678");
-  assert.equal(normalizeEgyptianPhone("01512345678"), "+201512345678");
-  assert.equal(normalizeEgyptianPhone("01912345678"), null);
+  assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
+  assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
+  assert.equal(normalizeEgyptianPhone("+20 12 1234 5678"), "+201599998877");
+  assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
+  assert.equal(normalizeEgyptianPhone("01599998877"), null);
   assert.equal(normalizeEgyptianPhone("123"), null);
 });
 
@@ -76,7 +77,7 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-  assert.ok(tokenHelper.includes("authClient.token()"));
+  assert.ok(tokenHelper.includes("authClient.getSession()"));
   assert.ok(!app.includes("authClient.getJWTToken?.()"));
 });
 
@@ -96,7 +97,7 @@ test("brand identity is consistent and infrastructure status is not exposed in t
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
-  assert.ok(worker.includes("zaffa-shell-v3"));
+  assert.ok(worker.includes("zaffa-shell-v4"));
   assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
   assert.ok(worker.includes('url.pathname.startsWith("/api/")'));
   assert.ok(worker.includes('cache: "no-store"'));
