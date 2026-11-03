@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { normalizeEgyptianPhone } from "../api/v1/profile.js";
+import { normalizeEgyptianPhone, phoneFromInternalAuthEmail } from "../api/v1/profile.js";
 import { extractBearerToken } from "../lib/auth.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
+import { readFileSync } from "node:fs";
+const FakeProfileApiSource = readFileSync(new URL("../api/v1/profile.js", import.meta.url), "utf8");
 const [app, shell, worker, profileApi] = await Promise.all([
   read("../app.js"),
   read("../index.html"),
@@ -39,6 +41,22 @@ test("customer registration and sign-in use phone and password without an email 
   assert.ok(app.includes("@phone.zaffa.invalid"));
   assert.ok(app.includes("authClient.signIn.email({email:authEmail,password})"));
   assert.ok(profileApi.includes('email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email'));
+});
+
+test("Neon Auth JWT is read through the documented getJWTToken method", () => {
+  assert.match(app, /authClient\.getJWTToken\?\.\(\)/);
+  assert.doesNotMatch(app, /authClient\.token\?\.\(\)/);
+});
+
+test("orphaned phone identities can be recovered to a customer profile", () => {
+  assert.equal(phoneFromInternalAuthEmail("201550130114@phone.zaffa.invalid"), "+201550130114");
+  assert.equal(phoneFromInternalAuthEmail("201012345678@phone.zaffa.invalid"), "+201012345678");
+  assert.equal(phoneFromInternalAuthEmail("somebody@example.com"), null);
+  assert.equal(phoneFromInternalAuthEmail("201999999999@phone.zaffa.invalid"), null);
+});
+
+test("a profile lookup bootstraps a missing profile from the signed-in auth identity", () => {
+  assert.match(FakeProfileApiSource, /bootstrapProfileFromAuthIdentity/);
 });
 
 test("Egyptian mobile numbers normalize consistently for customer identities", () => {
