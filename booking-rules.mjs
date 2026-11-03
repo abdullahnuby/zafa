@@ -31,11 +31,19 @@ export function calculateQuote({ packageCode, packagePrices, addOns = [] }) {
   return Object.freeze({ packageCode, durationHours: definition.hours, currency: 'EGP', lines, base, extras, total });
 }
 
+export const PAYMENT_METHODS = Object.freeze({
+  instapay_deposit: { label: 'إنستا باي — عربون', depositBasisPoints: 3000 },
+  cash: { label: 'كاش', depositBasisPoints: 3000 }
+});
+export function calculateDeposit(total, basisPoints = 3000) {
+  if (!Number.isSafeInteger(total) || total < 0) throw new Error('INVALID_TOTAL');
+  if (!Number.isInteger(basisPoints) || basisPoints < 500 || basisPoints > 10000) throw new Error('INVALID_DEPOSIT_BASIS_POINTS');
+  return Math.ceil(total * basisPoints / 10000);
+}
 export function initialBookingStatus({ ownerType, paymentMethod }) {
   if (!['fleet', 'independent'].includes(ownerType)) throw new Error('UNKNOWN_OWNER_TYPE');
-  if (!['cash', 'deposit', 'full'].includes(paymentMethod)) throw new Error('UNKNOWN_PAYMENT_METHOD');
-  if (ownerType === 'independent') return 'pending_owner';
-  return paymentMethod === 'cash' ? 'confirmed' : 'awaiting_payment';
+  if (!Object.hasOwn(PAYMENT_METHODS, paymentMethod)) throw new Error('UNSUPPORTED_PAYMENT_METHOD');
+  return ownerType === 'independent' ? 'pending_owner' : 'awaiting_payment';
 }
 
 const TRANSITIONS = Object.freeze({

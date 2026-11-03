@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="116" fill="#172b3a"/>
-  <circle cx="256" cy="256" r="188" fill="none" stroke="#c5a574" stroke-width="9" opacity=".8"/>
-  <path d="M256 102c-24 0-42 17-42 41 0 20 12 33 31 40v36h-86v44h86v35h-86v44h86v66h49v-66h58v-44h-58v-35h58v-44h-58v-29c36-6 60-28 60-64 0-34-25-58-63-58-23 0-42 8-58 22l27 33c9-8 17-12 27-12 13 0 20 7 20 18 0 12-10 19-27 19h-24v0z" fill="#e5d2ac"/>
-  <path d="M122 382h268" stroke="#c5a574" stroke-width="7" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<title id="title">ZAFFA</title>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172b3a"/><stop offset="1" stop-color="#071222"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7e2b6"/><stop offset=".5" stop-color="#e8bd75"/><stop offset="1" stop-color="#bd8845"/></linearGradient></defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<path d="M81 265 C110 111 201 62 268 62 C351 62 419 128 435 267 C439 294 438 315 433 337" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+<g fill="none" stroke="url(#g)" stroke-width="9"><path d="M207 220 C207 185 228 164 256 164 C286 164 306 189 306 219 C306 238 298 253 286 263"/><path d="M273 220 C273 185 294 164 322 164 C352 164 372 189 372 219 C372 243 359 261 339 269"/></g>
+<path d="M252 164 C243 187 245 214 258 236 C271 214 273 187 263 164" fill="#101f32" stroke="url(#g)" stroke-width="6"/>
+<g stroke="url(#g)" stroke-width="4" stroke-linejoin="round" fill="none"><path d="M234 120 L253 96 L300 96 L319 120 L277 174 Z"/><path d="M234 120 H319 M253 96 L265 120 L277 174 L290 120 L300 96 M253 96 L277 120 L300 96"/></g>
+<path d="M53 301 C83 293 118 278 153 258 C179 242 202 224 239 220 C277 215 323 217 354 225 C385 233 408 251 431 271 L461 276 C478 280 494 291 500 306 L505 324 C507 335 499 343 487 343 H71 C56 343 48 335 49 324 Z" fill="#101f32" stroke="url(#g)" stroke-width="8" stroke-linejoin="round"/>
+<path d="M159 258 C190 238 208 224 241 220 C278 216 323 218 353 226 C377 232 398 248 420 272 C373 279 324 282 277 282 C229 282 189 272 159 258 Z" fill="#101f32" stroke="url(#g)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M70 305 C109 300 139 306 172 324 M420 300 C449 298 477 304 494 319" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round"/>
+<g fill="url(#g)"><circle cx="111" cy="358" r="14"/><circle cx="157" cy="358" r="14"/><circle cx="390" cy="358" r="14"/><circle cx="436" cy="358" r="14"/></g>
 </svg>

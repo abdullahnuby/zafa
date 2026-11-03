@@ -8,51 +8,35 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">{"imports":{"@neondatabase/auth":"https://esm.sh/@neondatabase/auth@0.7.0-beta?bundle"}}</script>
   <title>زفّة | ZAFFA</title>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="القائمة الرئيسية">
       <a class="brand" href="#home" aria-label="زفّة الرئيسية">
-        <span class="brand-mark">ز</span>
-        <span><b>زفّة</b><small>ZAFFA</small></span>
+        <img class="brand-logo" src="/logo.svg" alt="زفّة ZAFFA" />
       </a>
       <div class="sidebar-caption">مساحة العمل</div>
       <nav id="side-nav" class="side-nav"></nav>
       <div class="sidebar-bottom">
         <div class="help-card"><span class="help-icon">؟</span><div><b>محتاج مساعدة؟</b><small>فريق زفّة معاك خطوة بخطوة</small></div></div>
-        <div class="prototype-note">نسخة تجريبية — بيانات محلية</div>
+        <div class="prototype-note">الإطلاق التمهيدي — تجهيز السيارات والتوافر</div>
       </div>
     </aside>
-
     <main class="main-area">
       <header class="topbar">
-        <button class="mobile-brand" data-action="go" data-view="home"><span class="brand-mark">ز</span><b>زفّة</b></button>
+        <button class="mobile-brand" data-action="go" data-view="home" aria-label="زفّة الرئيسية"><img class="mobile-brand-logo" src="/icon.svg" alt="" /><span class="mobile-brand-wordmark">زفّة</span></button>
         <div class="breadcrumb"><span>زفّة</span><i>/</i><b id="page-title">الرئيسية</b></div>
         <div class="top-actions">
-          <span class="demo-chip"><span></span> وضع تجريبي</span>
           <span id="backend-status" class="backend-status connecting" role="status" aria-live="polite"><span class="backend-dot"></span> جاري الاتصال</span>
-          <button class="icon-button" data-action="toast" data-message="مركز التنبيهات — نموذج تجريبي" aria-label="التنبيهات">♧</button>
-          <div class="role-switcher">
-            <label for="role-select">عرض الواجهة</label>
-            <select id="role-select" aria-label="اختيار الدور">
-              <option value="customer">عميل</option>
-              <option value="owner">مالك سيارة</option>
-              <option value="driver">سائق</option>
-              <option value="admin">إدارة زفّة</option>
-            </select>
-          </div>
-          <div class="avatar">م</div>
+          <button id="account-button" class="account-button" data-action="account" aria-label="تسجيل الدخول أو إدارة الحساب">تسجيل الدخول</button>
         </div>
       </header>
-
-      <section class="content-wrap">
-        <div id="app-content" aria-live="polite"></div>
-      </section>
+      <section class="content-wrap"><div id="app-content" aria-live="polite"></div></section>
       <nav id="mobile-nav" class="mobile-nav" aria-label="التنقل"></nav>
     </main>
   </div>
-
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
   <script type="module" src="/app.js"></script>

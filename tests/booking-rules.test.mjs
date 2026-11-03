@@ -24,12 +24,12 @@ test('unknown packages and unpriced distance extras are rejected', () => {
 
 test('independent owner booking waits for owner approval regardless of payment intent', () => {
   assert.equal(initialBookingStatus({ ownerType: 'independent', paymentMethod: 'cash' }), 'pending_owner');
-  assert.equal(initialBookingStatus({ ownerType: 'independent', paymentMethod: 'deposit' }), 'pending_owner');
+  assert.equal(initialBookingStatus({ ownerType: 'independent', paymentMethod: 'instapay_deposit' }), 'pending_owner');
 });
 
-test('fleet booking status respects payment choice', () => {
-  assert.equal(initialBookingStatus({ ownerType: 'fleet', paymentMethod: 'cash' }), 'confirmed');
-  assert.equal(initialBookingStatus({ ownerType: 'fleet', paymentMethod: 'deposit' }), 'awaiting_payment');
+test('fleet bookings remain unconfirmed until staff verifies the selected payment method', () => {
+  assert.equal(initialBookingStatus({ ownerType: 'fleet', paymentMethod: 'cash' }), 'awaiting_payment');
+  assert.equal(initialBookingStatus({ ownerType: 'fleet', paymentMethod: 'instapay_deposit' }), 'awaiting_payment');
 });
 
 test('booking transitions reject skipping required operational states', () => {
