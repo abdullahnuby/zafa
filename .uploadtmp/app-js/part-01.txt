@@ -1,0 +1,147 @@
+import { PACKAGE_CODES, ADD_ONS, calculateQuote, initialBookingStatus, calculateDemoCommission, assertBookingTransition } from './booking-rules.mjs';
+const STORAGE_KEY = 'zaffa_demo_v1';
+const TODAY = new Date();
+const tomorrow = new Date(TODAY); tomorrow.setDate(TODAY.getDate() + 1);
+const isoDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const money = n => `${new Intl.NumberFormat('ar-EG').format(Math.round(n))} ج.م`;
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const sampleData = () => ({
+  role: 'customer', view: 'home', filter: 'all', searchDate: isoDate(tomorrow), searchZone: 'وسط الأقصر', searchOccasion: 'زفاف',
+  favorites: ['car3'],
+  cars: [
+    {id:'car1',brand:'Mercedes-Benz',model:'E-Class',year:2023,color:'silver',plate:'أ ق ص ٤٥٢١',seats:4,transmission:'أوتوماتيك',ownerType:'fleet',ownerId:'fleet1',zone:'الأقصر والكرنك',packagePrices:{mini:1800,classic:2500,wedding:3900,royal:4900},rating:4.9,reviews:28,approval:'approved',features:['تكييف خلفي','جلد فاخر','زجاج معتم'],driverIncluded:true},
+    {id:'car2',brand:'BMW',model:'5 Series',year:2022,color:'navy',plate:'أ ق ص ٧١٣٨',seats:4,transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner1',zone:'الأقصر والبياضية',packagePrices:{mini:1650,classic:2300,wedding:3600,royal:4600},rating:4.8,reviews:17,approval:'approved',features:['فتحة سقف','جلد فاخر','نظام صوت'],driverIncluded:true},
+    {id:'car3',brand:'Mercedes-Benz',model:'S-Class',year:2024,color:'black',plate:'أ ق ص ٩٠٢٤',seats:4,transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner2',zone:'الأقصر والقرنة',packagePrices:{mini:2600,classic:3400,wedding:5200,royal:6900},rating:5.0,reviews:11,approval:'approved',features:['فئة ملكية','مقاعد تدليك','إضاءة داخلية'],driverIncluded:true},
+    {id:'car4',brand:'Hyundai',model:'Tucson',year:2023,color:'gold',plate:'أ ق ص ٣١٦٠',seats:5,transmission:'أوتوماتيك',ownerType:'fleet',ownerId:'fleet1',zone:'الأقصر والكرنك والبياضية',packagePrices:{mini:1400,classic:1950,wedding:3100,royal:3900},rating:4.7,reviews:34,approval:'approved',features:['مساحة واسعة','تكييف قوي','شنطة كبيرة'],driverIncluded:true},
+    {id:'car5',brand:'Toyota',model:'Camry',year:2022,color:'silver',plate:'أ ق ص ٥٨٣٢',seats:4,transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner1',zone:'الأقصر والعوامية',packagePrices:{mini:1500,classic:2100,wedding:3300,royal:4200},rating:4.6,reviews:9,approval:'approved',features:['مقاعد مريحة','تكييف خلفي','هدوء المقصورة'],driverIncluded:true},
+    {id:'car6',brand:'Mercedes-Benz',model:'C-Class',year:2021,color:'black',plate:'أ ق ص ٦٤٢٠',seats:4,transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner1',zone:'الأقصر',packagePrices:{mini:1500,classic:2100,wedding:3200,royal:4100},rating:0,reviews:0,approval:'pending',features:['جلد فاخر'],driverIncluded:true}
+  ],
+  bookings: [
+    {id:'Z-1001',carId:'car1',customerName:'مريم أحمد',customerPhone:'0100•••4821',ownerId:'fleet1',driverId:'driver1',date:isoDate(tomorrow),time:'17:00',zone:'فندق بالكرنك',destination:'معبد الأقصر',occasion:'زفاف',package:'wedding',packageLabel:'باقة الزفاف',hours:5,addons:['تزيين بسيط'],total:4150,commission:498,paymentMethod:'deposit',paymentState:'deposit_due',status:'driver_assigned',createdAt:new Date().toISOString(),notes:'السيارة تكون جاهزة قبل الموعد بنصف ساعة'},
+    {id:'Z-1002',carId:'car2',customerName:'أحمد محمود',customerPhone:'0109•••1175',ownerId:'owner1',driverId:null,date:isoDate(tomorrow),time:'19:30',zone:'قاعة النيل',destination:'وسط الأقصر',occasion:'كتب كتاب',package:'classic',packageLabel:'باقة كلاسيك',hours:3,addons:[],total:2300,commission:276,paymentMethod:'cash',paymentState:'cash_due',status:'pending_owner',createdAt:new Date().toISOString(),notes:'الرجاء تأكيد لون السيارة'}
+  ],
+  settlements: [{id:'ST-018',ownerId:'owner1',amount:1850,status:'pending',date:isoDate(TODAY)}]
+});
+
+let state;
+try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || sampleData(); } catch { state = sampleData(); }
+let activeCarId = null;
+let browseFilter = 'all';
+let bookingDraft = null;
+
+const roleConfig = {
+  customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','⌂'],['cars','السيارات','◇'],['bookings','حجوزاتي','▤'],['favorites','المفضلة','♡'],['account','حسابي','◎']]},
+  owner: {label:'مالك سيارة',default:'owner-overview',nav:[['owner-overview','ملخص المالك','⌂'],['owner-vehicles','سياراتي','◇'],['owner-requests','طلبات الحجز','▤'],['owner-calendar','التوافر','▦'],['owner-earnings','الأرباح والتسويات','◈']]},
+  driver: {label:'سائق',default:'driver-tasks',nav:[['driver-tasks','مهامي','⌖'],['driver-history','سجل الرحلات','▤'],['driver-account','حسابي','◎']]},
+  admin: {label:'إدارة زفّة',default:'admin-overview',nav:[['admin-overview','مركز العمليات','⌂'],['admin-bookings','الحجوزات','▤'],['admin-vehicles','اعتماد السيارات','◇'],['admin-people','الملاك والسائقون','♙'],['admin-finance','المالية والتسويات','◈'],['admin-reports','التقارير','▥']]}
+};
+const viewTitles = {
+  home:'الرئيسية',cars:'اكتشف السيارات',bookings:'حجوزاتي',favorites:'المفضلة',account:'حسابي',
+  'owner-overview':'ملخص المالك','owner-vehicles':'سياراتي','owner-requests':'طلبات الحجز','owner-calendar':'التوافر','owner-earnings':'الأرباح والتسويات',
+  'driver-tasks':'مهامي اليوم','driver-history':'سجل الرحلات','driver-account':'حسابي',
+  'admin-overview':'مركز العمليات','admin-bookings':'إدارة الحجوزات','admin-vehicles':'اعتماد السيارات','admin-people':'الملاك والسائقون','admin-finance':'المالية والتسويات','admin-reports':'التقارير'
+};
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function carById(id){ return state.cars.find(c=>c.id===id); }
+function bookingById(id){ return state.bookings.find(b=>b.id===id); }
+function statusInfo(status){
+  const m={pending_owner:['بانتظار موافقة المالك','orange'],awaiting_payment:['بانتظار الدفع','orange'],confirmed:['مؤكد','green'],driver_assigned:['تم تعيين السائق','blue'],ready:['السائق جاهز','blue'],in_progress:['الخدمة جارية','blue'],completed:['مكتمل','green'],cancelled:['ملغي','gray'],declined:['مرفوض','red'],no_show:['عدم حضور','red'],disputed:['قيد المراجعة','red']};
+  const [label,color]=m[status]||['غير محدد','gray']; return `<span class="status ${color}">${label}</span>`;
+}
+function carArt(color='silver'){
+  return `<svg class="car-svg" viewBox="0 0 360 150" role="img" aria-label="رسم توضيحي لسيارة"><defs><linearGradient id="body-${color}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fbfbf7"/><stop offset=".46" stop-color="#d4d7d2"/><stop offset="1" stop-color="#89979a"/></linearGradient></defs><ellipse cx="180" cy="128" rx="135" ry="9" fill="#273b4428"/><path d="M48 99 67 76q8-10 27-14l35-8 29-31q8-8 23-8h52q16 0 27 12l30 35 22 7q14 4 19 17l7 17q3 10-9 12H43q-10-3-5-14z" fill="url(#body-${color})" stroke="#65757a" stroke-width="2"/><path d="m143 53 27-29q5-5 14-5h49q9 0 16 8l24 27z" fill="#536d79"/><path d="m181 25-27 28h109l-22-28q-4-5-12-5h-39q-5 0-9 5" fill="#aebfc1" opacity=".72"/><path d="M48 99h272" stroke="#65757a" stroke-width="2"/><path d="m74 82 49-9 3 26H57z" fill="#edf0eb" opacity=".45"/><rect x="291" y="85" width="18" height="8" rx="3" fill="#f0d8b8"/><rect x="48" y="87" width="15" height="8" rx="3" fill="#d4d9d6"/><circle cx="96" cy="112" r="23" fill="#26343b"/><circle cx="96" cy="112" r="12" fill="#c6cac4"/><circle cx="96" cy="112" r="5" fill="#7f8b8e"/><circle cx="275" cy="112" r="23" fill="#26343b"/><circle cx="275" cy="112" r="12" fill="#c6cac4"/><circle cx="275" cy="112" r="5" fill="#7f8b8e"/><path d="M145 54v44m74-44v44" stroke="#778589" stroke-width="2" opacity=".6"/></svg>`;
+}
+function carCard(car){
+  const favorite=state.favorites.includes(car.id);
+  const low=car.packagePrices.classic;
+  return `<article class="car-card"><div class="car-art ${escapeHtml(car.color)}">${carArt(car.color)}<span class="car-badge">✓ سيارة معتمدة</span><button class="favorite ${favorite?'active':''}" data-action="favorite" data-id="${car.id}" aria-label="إضافة للمفضلة">${favorite?'♥':'♡'}</button></div><div class="car-body"><div class="car-title-row"><div><h3>${escapeHtml(car.brand)} ${escapeHtml(car.model)}</h3><div class="car-sub">موديل ${car.year} · ${escapeHtml(car.zone)}</div></div><span class="rating">★ ${car.rating?car.rating.toFixed(1):'جديد'} <small>(${car.reviews})</small></span></div><div class="car-meta"><span>♙ ${car.seats} أفراد</span><span>⚙ ${escapeHtml(car.transmission)}</span><span>✓ بسائق</span></div><div class="car-price-row"><div class="price">${money(low)} <small>/ 3 ساعات</small></div><span class="owner-type">${car.ownerType==='fleet'?'أسطول زفّة':'مالك موثّق'}</span></div><div class="car-actions"><button class="btn btn-outline btn-small" data-action="details" data-id="${car.id}">التفاصيل</button><button class="btn btn-primary btn-small" data-action="book" data-id="${car.id}">احجز السيارة</button></div></div></article>`;
+}
+function pageHeading(kicker,title,desc,button=''){return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${desc}</p></div>${button}</div>`;}
+function statCard(icon,label,value,foot){return `<div class="stat-card"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-icon">${icon}</span></div><div class="stat-value">${value}</div><div class="stat-foot">${foot}</div></div>`;}
+function navButton(item,active){return `<button class="nav-item ${active?'active':''}" data-action="go" data-view="${item[0]}"><span class="nav-icon">${item[2]}</span><span>${item[1]}</span></button>`;}
+function renderNav(){
+  const cfg=roleConfig[state.role];
+  document.querySelector('#side-nav').innerHTML=cfg.nav.map(n=>navButton(n,n[0]===state.view)).join('');
+  document.querySelector('#mobile-nav').innerHTML=cfg.nav.slice(0,5).map(n=>navButton(n,n[0]===state.view)).join('');
+  document.querySelector('#page-title').textContent=viewTitles[state.view]||cfg.label;
+}
+function homeView(){
+  const count=state.cars.filter(c=>c.approval==='approved').length;
+  return `${pageHeading('مناسبتك تستحق الأفضل','سيارتك الأنيقة تبدأ من هنا','اختر السيارة المناسبة ليومك، وحدد تفاصيل المناسبة، ودع علينا تنسيق التجربة.')}
+    <section class="hero-panel"><div class="hero-copy"><span class="hero-label">لحظات تستحق أن تُروى</span><h2>من أول مشوار<br><em>لآخر ذكرى جميلة</em></h2><p>سيارات مختارة بسائقين، وباقات واضحة تناسب الزفاف والخطوبة وكتب الكتاب.</p><div class="hero-points"><span>✓ سيارات معتمدة</span><span>✓ حجز واضح</span><span>✓ دعم ومتابعة</span></div></div><div class="hero-visual">${carArt('silver')}<div class="hero-stamp"><b>${count}</b><span>سيارة في النموذج</span></div></div></section>
+    <section class="search-panel"><div class="search-head"><div><span class="eyebrow">ابدأ الحجز</span><h3>متى وأين مناسبتك؟</h3></div><span class="search-icon">⌕</span></div><div class="search-grid"><div class="field"><label for="home-date">تاريخ المناسبة</label><input id="home-date" type="date" min="${isoDate(TODAY)}" value="${state.searchDate}"></div><div class="field"><label for="home-zone">منطقة التجمع</label><select id="home-zone"><option ${state.searchZone==='وسط الأقصر'?'selected':''}>وسط الأقصر</option><option ${state.searchZone==='الكرنك'?'selected':''}>الكرنك</option><option ${state.searchZone==='العوامية'?'selected':''}>العوامية</option><option ${state.searchZone==='البياضية'?'selected':''}>البياضية</option><option ${state.searchZone==='القرنة'?'selected':''}>القرنة</option></select></div><div class="field"><label for="home-occasion">نوع المناسبة</label><select id="home-occasion"><option>زفاف</option><option>خطوبة</option><option>كتب كتاب</option><option>مناسبة خاصة</option></select></div><button class="btn btn-primary search-submit" data-action="search-cars">اعثر على سيارتك <span>←</span></button></div><div class="search-foot">التوافر النهائي والسعر يتأكدان قبل إتمام الحجز.</div></section>
+    <section class="section-block"><div class="section-heading"><div><span class="eyebrow">اختيارات زفّة</span><h2>سيارات مميزة لمناسبتك</h2></div><button class="text-button" data-action="go" data-view="cars">عرض كل السيارات ←</button></div><div class="car-grid">${state.cars.filter(c=>c.approval==='approved').slice(0,3).map(carCard).join('')}</div></section>
+    <section class="trust-strip"><div><b>سيارات بسائق</b><span>لا يوجد تأجير للقيادة الذاتية</span></div><div><b>ملاك وأساطيل معتمدة</b><span>خيارات متعددة مع مراجعة</span></div><div><b>سعر واضح</b><span>تفاصيل قبل تأكيد الحجز</span></div></section>`;
+}
+function carsView(){
+  let cars=state.cars.filter(c=>c.approval==='approved');
+  if(browseFilter==='fleet')cars=cars.filter(c=>c.ownerType==='fleet');
+  if(browseFilter==='owners')cars=cars.filter(c=>c.ownerType==='independent');
+  if(browseFilter==='luxury')cars=cars.filter(c=>c.packagePrices.classic>=3000);
+  return `${pageHeading('تشكيلة السيارات','اكتشف السيارة المناسبة','قارن بين السيارات المعتمدة والباقات المتاحة في نطاق الأقصر.')}
+  <div class="toolbar"><div class="filter-pills"><button class="filter-pill ${browseFilter==='all'?'active':''}" data-action="filter" data-filter="all">الكل</button><button class="filter-pill ${browseFilter==='fleet'?'active':''}" data-action="filter" data-filter="fleet">أسطول زفّة</button><button class="filter-pill ${browseFilter==='owners'?'active':''}" data-action="filter" data-filter="owners">ملاك موثقون</button><button class="filter-pill ${browseFilter==='luxury'?'active':''}" data-action="filter" data-filter="luxury">فئة فاخرة</button></div><span class="results-count">${cars.length} سيارات</span></div>
+  <div class="car-grid">${cars.map(carCard).join('')||'<div class="empty-state">لا توجد سيارات ضمن الاختيار الحالي.</div>'}</div>`;
+}
+function carDetails(id){
+  const car=carById(id); if(!car)return; activeCarId=id;
+  const body=`<div class="detail-car-art">${carArt(car.color)}</div><div class="detail-title"><div><h3>${escapeHtml(car.brand)} ${escapeHtml(car.model)}</h3><p>موديل ${car.year} · ${escapeHtml(car.zone)}</p></div><span class="verified-pill">✓ معتمدة</span></div><div class="detail-specs"><div><small>المقاعد</small><b>${car.seats}</b></div><div><small>ناقل الحركة</small><b>${escapeHtml(car.transmission)}</b></div><div><small>التقييم التجريبي</small><b>★ ${car.rating||'جديد'}</b></div><div><small>نوع مقدم الخدمة</small><b>${car.ownerType==='fleet'?'أسطول':'مالك مستقل'}</b></div></div><h4>مميزات السيارة</h4><div class="feature-list">${car.features.map(f=>`<span>✓ ${escapeHtml(f)}</span>`).join('')}</div><div class="notice warning">هذه بيانات وصورة توضيحية في النموذج وليست عرضًا فعليًا متاحًا للحجز.</div>`;
+  openModal('تفاصيل السيارة',body,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button><button class="btn btn-primary" data-action="book" data-id="${id}">اختيار هذه السيارة</button>`);
+}
+function openBooking(id){
+  const car=carById(id); if(!car)return; activeCarId=id;
+  const pkgOptions=Object.entries(PACKAGE_CODES).map(([code,p])=>`<option value="${code}">${p.label} — ${p.hours} ساعات — ${money(car.packagePrices[code])}</option>`).join('');
+  const body=`<form id="booking-form"><div class="booking-car-mini">${carArt(car.color)}<div><b>${escapeHtml(car.brand)} ${escapeHtml(car.model)}</b><small>${car.ownerType==='fleet'?'أسطول زفّة':'مالك مستقل'}</small></div></div><div class="form-grid"><div class="field"><label>تاريخ المناسبة</label><input name="date" type="date" min="${isoDate(TODAY)}" value="${state.searchDate}" required></div><div class="field"><label>الوقت</label><input name="time" type="time" value="17:00" required></div><div class="field"><label>مكان التجمع</label><input name="zone" required value="${escapeHtml(state.searchZone)}" placeholder="الفندق أو القاعة"></div><div class="field"><label>الوجهة</label><input name="destination" required placeholder="مثال: قاعة المناسبة"></div><div class="field"><label>نوع المناسبة</label><select name="occasion"><option>زفاف</option><option>خطوبة</option><option>كتب كتاب</option><option>مناسبة خاصة</option></select></div><div class="field"><label>الباقة</label><select name="package">${pkgOptions}</select></div></div><div class="addons"><b>إضافات اختيارية</b><label><input type="checkbox" name="addons" value="decor"> تزيين بسيط للسيارة</label><label><input type="checkbox" name="addons" value="waiting"> انتظار إضافي</label><label><input type="checkbox" name="addons" value="convoy"> تنسيق موكب</label><label><input type="checkbox" name="addons" value="distance"> انتقال خارج نطاق الأقصر (يتطلب عرض سعر)</label></div><div class="field"><label>طريقة الدفع المقصودة</label><select name="payment"><option value="deposit">عربون إلكتروني (محاكاة — 30%)</option><option value="full">دفع إلكتروني كامل (محاكاة)</option><option value="cash">نقدًا وفق سياسة الحجز</option></select></div><div class="field"><label>ملاحظات</label><textarea name="notes" rows="2" placeholder="أي تفاصيل تساعد في تنسيق المناسبة"></textarea></div><div class="notice warning">المبالغ وأسعار الإضافات توضيحية. لا يتم تحصيل أي أموال في هذا الإصدار.</div></form>`;
+  openModal('تفاصيل الحجز',body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="submit-booking">متابعة ومراجعة السعر</button>`);
+}
+function submitBooking(){
+  const form=document.querySelector('#booking-form'); if(!form?.reportValidity())return;
+  const fd=new FormData(form);const car=carById(activeCarId);const pkg=fd.get('package');const addons=fd.getAll('addons');const quote=calculateQuote({packageCode:pkg,packagePrices:car.packagePrices,addOns:addons});const external=addons.includes('distance');const total=quote.total;const payment=fd.get('payment');
+  const preview=`<div class="summary-box">${quote.lines.map(x=>`<div class="summary-line"><span>${escapeHtml(x.label)}</span><b>${money(x.amount)}</b></div>`).join('')}<div class="summary-line total"><span>الإجمالي التقديري</span><b>${money(total)}</b></div><div class="summary-line"><span>العربون الافتراضي</span><b>${money(payment==='deposit'?Math.ceil(total*.3):payment==='full'?total:0)}</b></div></div>${external?'<div class="notice warning">الوجهة خارج نطاق السعر المحدد. يلزم عرض سعر يدوي قبل تأكيد الطلب.</div>':''}<div class="notice">${car.ownerType==='independent'?'الطلب ينتظر موافقة المالك.':'سيتم تأكيد الحجز بعد التحقق من التوافر واستكمال خطوة الدفع المطلوبة.'}</div>`;
+  openModal('مراجعة تفاصيل الحجز',preview,`<button class="btn btn-outline" data-action="close-modal">تعديل</button><button class="btn btn-primary" data-action="confirm-booking">إنشاء طلب تجريبي</button>`);
+  bookingDraft={car,pkg,addons,total,payment,external,fd:new FormData(form),labels:Object.fromEntries(Object.entries(PACKAGE_CODES).map(([k,v])=>[k,v.label])),addonLabels:Object.fromEntries(Object.entries(ADD_ONS).map(([k,v])=>[k,v.label]))};
+}
+function confirmBooking(){
+  const d=bookingDraft;if(!d)return;const {car,pkg,addons,total,payment,external,fd}=d;const status=external?'pending_owner':initialBookingStatus({ownerType:car.ownerType==='independent'?'independent':'fleet',paymentMethod:payment});const id=`Z-${String(1003+state.bookings.length).padStart(4,'0')}`;const b={id,carId:car.id,customerName:'مريم أحمد',customerPhone:'0100•••4821',ownerId:car.ownerId,driverId:null,date:fd.get('date'),time:fd.get('time'),zone:fd.get('zone'),destination:fd.get('destination'),occasion:fd.get('occasion'),package:pkg,packageLabel:d.labels[pkg],hours:PACKAGE_CODES[pkg].hours,addons:addons.map(a=>d.addonLabels[a]),total,commission:calculateDemoCommission(total),paymentMethod:payment,paymentState:payment==='cash'?'cash_due':'not_paid_demo',paymentDueNow:payment==='deposit'?Math.ceil(total*.3):payment==='full'?total:0,status,createdAt:new Date().toISOString(),notes:fd.get('notes'),needsManualQuote:external};state.bookings.unshift(b);state.searchDate=b.date;state.searchZone=b.zone;persist();closeModal();go('bookings');toast(car.ownerType==='independent'?'تم تسجيل الطلب — بانتظار موافقة المالك (تجريبي)':'تم إنشاء الحجز في النموذج التجريبي',true);
+}
+function updateBookingStatus(id,status){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,status);}catch{return toast('لا يمكن تنفيذ انتقال الحالة ده وفق دورة الحجز');}b.status=status;if(status==='completed')b.completedAt=new Date().toISOString();persist();render();toast('تم تحديث حالة الحجز في البيانات التجريبية',true);}
+function bookingDetails(id){const b=bookingById(id);if(!b)return;const c=carById(b.carId)||{};let actions='';if(state.role==='owner'&&b.ownerId==='owner1'&&b.status==='pending_owner'){actions=`<button class="btn btn-danger" data-action="owner-decline" data-id="${b.id}">رفض الطلب</button><button class="btn btn-primary" data-action="owner-accept" data-id="${b.id}">قبول الطلب</button>`}else if(state.role==='customer'&&b.status==='awaiting_payment'){actions=`<button class="btn btn-gold" data-action="simulate-payment" data-id="${b.id}">محاكاة إتمام الدفع</button>`}else if(state.role==='admin'&&b.status==='confirmed'){actions=`<button class="btn btn-primary" data-action="assign-driver" data-id="${b.id}">إسناد السائق التجريبي</button>`}
+ const body=`<div class="profile-grid"><div class="profile-card"><div class="profile-icon">▤</div><div><b>رقم الحجز</b><small>${b.id}</small></div></div><div class="profile-card"><div class="profile-icon">◷</div><div><b>حالة الحجز</b><small>${statusInfo(b.status)}</small></div></div></div><div class="summary-box"><div class="summary-line"><span>السيارة</span><b>${escapeHtml(c.brand||'')} ${escapeHtml(c.model||'')}</b></div><div class="summary-line"><span>العميل</span><b>${escapeHtml(b.customerName)}</b></div><div class="summary-line"><span>الموعد</span><b>${escapeHtml(b.date)} — ${escapeHtml(b.time)}</b></div><div class="summary-line"><span>مكان التجمع</span><b>${escapeHtml(b.zone)}</b></div><div class="summary-line"><span>الوجهة</span><b>${escapeHtml(b.destination)}</b></div><div class="summary-line"><span>الباقة</span><b>${escapeHtml(b.packageLabel)} · ${b.hours} ساعات</b></div><div class="summary-line"><span>الإضافات</span><b>${escapeHtml((b.addons||[]).join('، ')||'لا يوجد')}</b></div><div class="summary-line"><span>طريقة الدفع</span><b>${b.paymentMethod==='cash'?'نقدًا':b.paymentMethod==='deposit'?'عربون إلكتروني':'إلكتروني كامل'}</b></div><div class="summary-line"><span>المطلوب الآن</span><b>${b.paymentMethod==='cash'?'حسب السياسة':money(b.paymentDueNow??(b.paymentMethod==='full'?b.total:Math.ceil(b.total*.3)))}</b></div><div class="summary-line total"><span>الإجمالي</span><b>${money(b.total)}</b></div></div>${b.notes?`<div class="notice">ملاحظات: ${escapeHtml(b.notes)}</div>`:''}<div class="notice warning">بيانات الحجز وسير العمل هنا تجريبية ومحفوظة في متصفحك فقط. لا تستخدمها كإثبات حجز.</div>`;
+ openModal(`تفاصيل الحجز ${b.id}`,body,`${actions}<button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);
+}
+function ownerAccept(id){const b=bookingById(id);if(!b)return;const next=b.paymentMethod==='cash'?'confirmed':'awaiting_payment';try{assertBookingTransition(b.status,next);}catch{return toast('حالة الطلب لا تسمح بالقبول');}b.status=next;persist();closeModal();render();toast(b.status==='confirmed'?'تم قبول الطلب — لم يتم تعيين سائق بعد':'تم قبول الطلب — ينتظر استكمال الدفع التجريبي',true);}
+function simulatePayment(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'confirmed');}catch{return toast('لا يمكن تأكيد الدفع لهذه الحالة');}b.paymentState='paid_simulated';b.status='confirmed';persist();closeModal();render();toast('تم تحديث حالة الدفع كمحاكاة فقط — لا توجد معاملة مالية',true);}
+function assignDriver(id){const b=bookingById(id);if(!b)return;try{assertBookingTransition(b.status,'driver_assigned');}catch{return toast('لا يمكن تعيين سائق قبل تأكيد الحجز');}b.driverId='driver1';b.status='driver_assigned';persist();closeModal();render();toast('تم إسناد السائق التجريبي للحجز',true);}
+function addCar(){const body=`<form id="add-car-form"><div class="modal-grid"><div class="field"><label>الماركة</label><input name="brand" required placeholder="Mercedes-Benz"></div><div class="field"><label>الموديل</label><input name="model" required placeholder="E-Class"></div><div class="field"><label>سنة الصنع</label><input name="year" type="number" min="2000" max="2035" required value="2022"></div><div class="field"><label>رقم اللوحة</label><input name="plate" required placeholder="أ ق ص ١٢٣٤"></div><div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option></select></div><div class="field"><label>المنطقة</label><select name="zone"><option>الأقصر</option><option>الأقصر والكرنك</option><option>الأقصر والبياضية</option><option>الأقصر والقرنة</option></select></div><div class="field"><label>سعر باقة ميني</label><input name="mini" type="number" required value="1500"></div><div class="field"><label>سعر باقة كلاسيك</label><input name="classic" type="number" required value="2100"></div></div><div class="notice warning">سيتم حفظ السيارة كطلب اعتماد تجريبي. لا ترفع مستندات أو بيانات شخصية في هذه النسخة.</div></form>`;openModal('إضافة سيارة جديدة',body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);}
+function saveCar(){const f=document.querySelector('#add-car-form');if(!f?.reportValidity())return;const d=new FormData(f);const id=`car${Date.now()}`;state.cars.push({id,brand:d.get('brand'),model:d.get('model'),year:Number(d.get('year')),color:'silver',plate:d.get('plate'),seats:Number(d.get('seats')),transmission:'أوتوماتيك',ownerType:'independent',ownerId:'owner1',zone:d.get('zone'),packagePrices:{mini:Number(d.get('mini')),classic:Number(d.get('classic')),wedding:Number(d.get('classic'))*1.55,royal:Number(d.get('classic'))*1.95},rating:0,reviews:0,approval:'pending',features:['تحتاج مراجعة'],driverIncluded:true});persist();closeModal();render();toast('تم حفظ السيارة في قائمة انتظار الاعتماد التجريبية',true);}
+function editCar(id){const c=carById(id);if(!c)return;openModal('بيانات السيارة',`<div class="notice">${escapeHtml(c.brand)} ${escapeHtml(c.model)} — ${escapeHtml(c.plate)}</div><p style="font-size:11px;color:#77848a">تحرير الأسعار والمعلومات سيتم توسيعه بعد اعتماد نموذج السيارة والمستندات.</p>`,`<button class="btn btn-outline" data-action="close-modal">إغلاق</button>`);}
+
+document.addEventListener('click',event=>{
+ const btn=event.target.closest('[data-action]');if(!btn)return;const action=btn.dataset.action;const id=btn.dataset.id;
+ if(action==='go')go(btn.dataset.view);
+ else if(action==='toast')toast(btn.dataset.message||'تم');
+ else if(action==='filter'){browseFilter=btn.dataset.filter;render();}
+ else if(action==='favorite'){if(state.favorites.includes(id))state.favorites=state.favorites.filter(x=>x!==id);else state.favorites.push(id);persist();render();toast(state.favorites.includes(id)?'اتضافت للمفضلة':'اتشالت من المفضلة',true);}
+ else if(action==='details')carDetails(id);
+ else if(action==='book')openBooking(id||activeCarId);
+ else if(action==='close-modal')closeModal();
+ else if(action==='backdrop'&&event.target.classList.contains('modal-backdrop'))closeModal();
+ else if(action==='search-cars'){state.searchDate=document.querySelector('#home-date')?.value||state.searchDate;state.searchZone=document.querySelector('#home-zone')?.value||state.searchZone;state.searchOccasion=document.querySelector('#home-occasion')?.value||state.searchOccasion;persist();browseFilter='all';go('cars');}
+ else if(action==='submit-booking')submitBooking();
+ else if(action==='confirm-booking')confirmBooking();
+ else if(action==='booking-details')bookingDetails(id);
+ else if(action==='owner-accept')ownerAccept(id);
+ else if(action==='owner-decline'){const b=bookingById(id);if(b)b.status='declined';persist();closeModal();render();toast('تم رفض الطلب في البيانات التجريبية');}
+ else if(action==='simulate-payment')simulatePayment(id);
+ else if(action==='assign-driver')assignDriver(id);
+ else if(action==='driver-status')updateBookingStatus(id,btn.dataset.status);
+ else if(action==='add-car')addCar();
+ else if(action==='save-car')saveCar();
+ else if(action==='edit-car')editCar(id);
+ else if(action==='approve-car'||action==='reject-car'){const c=carById(id);if(c)c.approval=action==='approve-car'?'approved':'rejected';persist();render();toast(action==='approve-car'?'تم تغيير الحالة إلى معتمدة تجريبيًا':'تم رفض السيارة تجريبيًا',true);}
+});
+
+document.querySelector('#role-select').addEventListener('change',event=>{state.role=event.target.value;state.view=roleConfig[state.role].default;persist();render();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeModal();});
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+render();
