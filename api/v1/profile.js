@@ -42,10 +42,10 @@ export default async function handler(req, res) {
     if (displayName.length < 2 || displayName.length > 80) return res.status(400).json({ ok: false, code: "INVALID_DISPLAY_NAME" });
     if (!phone) return res.status(400).json({ ok: false, code: "INVALID_EGYPTIAN_PHONE" });
     const authUser = await getPool().query(
-      `SELECT id, email, banned FROM neon_auth."user" WHERE id = $1::uuid LIMIT 1`,
+      `SELECT id, email FROM neon_auth."user" WHERE id = $1::uuid LIMIT 1`,
       [identity.authUserId]
     );
-    if (!authUser.rows.length || authUser.rows[0].banned) return res.status(403).json({ ok: false, code: "ACCOUNT_NOT_ALLOWED" });
+    if (!authUser.rows.length) return res.status(403).json({ ok: false, code: "ACCOUNT_NOT_ALLOWED" });
     const { rows } = await getPool().query(
       `INSERT INTO public.users (auth_user_id, phone_e164, display_name, email)
        VALUES ($1::uuid,$2,$3,$4)
