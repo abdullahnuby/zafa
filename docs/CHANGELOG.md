@@ -31,3 +31,9 @@
 - Updated the app icon to the same champagne-and-mauve wedding identity for home-screen and browser use.
 - Removed the customer-facing Neon connection badge and its UI-only health-check poll; catalog loading and all backend API behavior remain unchanged.
 - Updated browser/PWA theme colors to the warm ivory and blush identity.
+
+## 2026-11-03 — Correct Neon JWT retrieval and recover interrupted sign-ups
+- Use the documented Neon Auth `getJWTToken()` API to obtain the JWT injected into the authenticated session by the Neon adapter.
+- Do not misreport a 401 from token/profile stages as an incorrect phone/password pair.
+- On an authenticated profile GET, recover a missing application profile from the signed Neon Auth identity only when it matches the internal Egyptian phone alias and the Auth row. A default customer role is added; no privileged role is granted automatically.
+- Add regression tests for the documented JWT method and recovery of orphaned registrations.

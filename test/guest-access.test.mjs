@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { normalizeEgyptianPhone } from "../api/v1/profile.js";
+import { normalizeEgyptianPhone, phoneFromInternalAuthEmail } from "../api/v1/profile.js";
 import { extractBearerToken } from "../lib/auth.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
@@ -41,6 +41,22 @@ test("customer registration and sign-in use phone and password without an email 
   assert.ok(profileApi.includes('email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email'));
 });
 
+test("Neon Auth JWT is read through the documented getJWTToken method", () => {
+  assert.match(app, /authClient\.getJWTToken\?\.\(\)/);
+  assert.doesNotMatch(app, /authClient\.token\?\.\(\)/);
+});
+
+test("orphaned phone identities can be recovered to a customer profile", () => {
+  assert.equal(phoneFromInternalAuthEmail("201550130114@phone.zaffa.invalid"), "+201550130114");
+  assert.equal(phoneFromInternalAuthEmail("201012345678@phone.zaffa.invalid"), "+201012345678");
+  assert.equal(phoneFromInternalAuthEmail("somebody@example.com"), null);
+  assert.equal(phoneFromInternalAuthEmail("201999999999@phone.zaffa.invalid"), null);
+});
+
+test("a profile lookup bootstraps a missing profile from the signed-in auth identity", () => {
+  assert.match(profileApi, /bootstrapProfileFromAuthIdentity/);
+});
+
 test("Egyptian mobile numbers normalize consistently for customer identities", () => {
   assert.equal(normalizeEgyptianPhone("01012345678"), "+201012345678");
   assert.equal(normalizeEgyptianPhone("01112345678"), "+201112345678");
@@ -57,8 +73,8 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-  assert.ok(app.includes("authClient.token?.()"));
-  assert.ok(!app.includes("authClient.getSession()"));
+  assert.ok(app.includes("authClient.getJWTToken?.()"));
+  assert.ok(!app.includes("authClient.token?.()"));
 });
 
 test("brand identity is consistent and infrastructure status is not exposed in the customer header", async () => {

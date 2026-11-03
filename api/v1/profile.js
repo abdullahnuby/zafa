@@ -24,13 +24,48 @@ async function loadProfile(authUserId) {
   );
   return rows[0] || null;
 }
+export function phoneFromInternalAuthEmail(email) {
+  const value = String(email || "").trim().toLowerCase();
+  const suffix = "@phone.zaffa.invalid";
+  if (!value.endsWith(suffix)) return null;
+  const phoneDigits = value.slice(0, -suffix.length);
+  return normalizeEgyptianPhone(phoneDigits);
+}
+async function bootstrapProfileFromAuthIdentity(identity) {
+  if (!identity.authUserId) return null;
+  const authUser = await getPool().query(
+    `SELECT id, email, name FROM neon_auth."user" WHERE id = $1::uuid LIMIT 1`,
+    [identity.authUserId]
+  );
+  if (!authUser.rows.length) return null;
+  const email = String(authUser.rows[0].email || "").trim().toLowerCase();
+  if (identity.email && identity.email.toLowerCase() !== email) return null;
+  const phone = phoneFromInternalAuthEmail(email);
+  const displayName = String(identity.name || authUser.rows[0].name || "").trim();
+  if (!phone || displayName.length < 2 || displayName.length > 80) return null;
+  await getPool().query(
+    `INSERT INTO public.users (auth_user_id, phone_e164, display_name, email)
+     VALUES ($1::uuid,$2,$3,$4)
+     ON CONFLICT (auth_user_id) DO NOTHING`,
+    [identity.authUserId, phone, displayName, email]
+  );
+  const profile = await loadProfile(identity.authUserId);
+  if (!profile) return null;
+  await getPool().query(
+    `INSERT INTO public.user_roles (user_id,role) VALUES ($1,'customer'::public.user_role)
+     ON CONFLICT (user_id,role) DO NOTHING`,
+    [profile.id]
+  );
+  return await loadProfile(identity.authUserId);
+}
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   try {
     const identity = await requireIdentity(req);
     if (req.method === "GET") {
-      const profile = await loadProfile(identity.authUserId);
+      let profile = await loadProfile(identity.authUserId);
+      if (!profile) profile = await bootstrapProfileFromAuthIdentity(identity);
       return res.status(200).json({ ok: true, profile: profile ? response(profile) : null });
     }
     if (req.method !== "POST") {

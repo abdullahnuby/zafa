@@ -184,8 +184,7 @@ const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.u
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
 async function getAuthToken(){
- const result=await authClient.token?.();
- const token=result?.data?.token;
+ const token=await authClient.getJWTToken?.();
  return typeof token==="string"&&token.length>20?token:null;
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
@@ -236,7 +235,11 @@ function friendlyAuthError(error,stage="sign-in"){
   if(stage==="profile")return "تمت المصادقة، لكن ملف العميل غير متاح على الخادم حاليًا. حسابك لم يُحذف؛ هنراجع ربط الملف.";
   return "مسار تسجيل الدخول غير متاح على الخدمة. هنراجع الإعدادات، ومش محتاج تنشئ حسابًا جديدًا.";
  }
- if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw))return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
+ if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw)){
+  if(stage==="sign-in")return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
+  if(stage==="token")return "تم قبول طلب الحساب، لكن تعذر استخراج جلسة آمنة. جرّب تسجيل الدخول بالحساب نفسه.";
+  return "تم التحقق من بيانات الدخول، لكن خادم ملف العميل رفض الجلسة. حسابك محفوظ ولم يتم حذفه.";
+ }
  if(/user already exists|already exists|user_already_exists|email_already_exists/i.test(code+" "+raw))return "رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول بدل إنشاء حساب جديد.";
  return "ما قدرناش نسجّل دخولك دلوقتي. راجع الاتصال وحاول تاني.";
 }
