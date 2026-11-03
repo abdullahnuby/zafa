@@ -148,16 +148,16 @@ async function getAuthToken(){const t=await authClient.getJWTToken?.();return ty
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
 function normalizeCustomerPhone(value){
- const raw=String(value||"").replace(/\\D/g,"");
+ const raw=String(value||"").replace(/\D/g,"");
  let digits=raw;
  if(digits.startsWith("00"))digits=digits.slice(2);
  if(digits.startsWith("20")){}
  else if(digits.startsWith("0"))digits="2"+digits;
  else digits="20"+digits;
- return /^201[0125]\\d{8}$/.test(digits)?"+"+digits:null;
+ return /^201[0125]\d{8}$/.test(digits)?"+"+digits:null;
 }
 function internalAuthEmail(phone){
- const digits=String(phone||"").replace(/\\D/g,"");
+ const digits=String(phone||"").replace(/\D/g,"");
  return digits+"@phone.zaffa.invalid";
 }
 function updateAccountButton(){const b=document.querySelector("#account-button");if(b)b.textContent=currentProfile?.displayName||authSession?.user?.name||(authSession?.user?"حسابي":"تسجيل الدخول");}
