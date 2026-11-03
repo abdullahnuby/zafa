@@ -388,6 +388,8 @@ function adminErrorMessage(error){
   INVALID_PHOTO_COUNT:"اختر من صورة واحدة إلى 3 صور فقط.",
   INVALID_VEHICLE_PHOTO_FILE:"الصور المسموحة JPG أو PNG أو WEBP، وبحد أقصى 5 ميجابايت للصورة.",
   VEHICLE_PHOTO_LIMIT_REACHED:"وصلت السيارة إلى الحد الأقصى وهو 3 صور.",
+  PHOTO_ALREADY_COMPLETED:"تم اكتمال رفع الصورة بالفعل، حدّث بيانات السيارة.",
+  APPROVED_VEHICLE_NEEDS_PHOTO:"لا يمكن حذف آخر صورة من سيارة منشورة. أوقف النشر أو أضف صورة بديلة أولًا.",
   INVALID_UPLOADED_VEHICLE_PHOTO:"تعذر التحقق من الصورة المرفوعة. اختر صورة سليمة وحاول مرة أخرى.",
   VEHICLE_PHOTO_NOT_FOUND:"الصورة غير موجودة أو سبق حذفها.",
   INVALID_MEDIA_ID:"معرّف الصورة غير صحيح.",
