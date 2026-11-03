@@ -2,36 +2,37 @@
 
 ## Milestone 0 — Interactive product prototype
 
-Status: implemented locally in this package; server smoke tests pending.
+Status: implemented.
 
-Delivered:
 - Arabic RTL responsive PWA shell.
 - Customer, owner, driver, and admin demo workspaces.
-- Core demo booking flow with package/add-on/payment-intent selection.
-- Owner accept/reject and driver service-state demo progression.
-- Admin booking and vehicle-approval demo screens.
+- Demo booking flow, package selection, add-ons, owner decisions, and driver status progression.
 - Browser-local demo persistence.
-- PostgreSQL schema draft and API contract draft.
 
-Known limitations:
-- No real auth or role authorization; role switcher is only a demo control.
-- No production API/database persistence.
-- No real availability locking or no-double-booking guarantee.
-- No real payment, PSP webhook, refunds, ledger settlement, OTP, push, SMS, or GPS integration.
-- No real vehicle/driver document verification or legal sign-off.
-- No live design handoff imported from Canva; this prototype uses its own coded design system aligned with the agreed direction.
+## Milestone 1 — Neon + Vercel backend foundation
 
-## Milestone 1 — Backend foundation (next)
+Status: infrastructure configured; first API endpoints committed.
 
-1. Select/confirm repository and deployment target.
-2. Provision PostgreSQL in a legally reviewed hosting region.
-3. Implement identity, OTP adapter, RBAC, and audit log.
-4. Apply and review schema migrations.
-5. Implement owner/vehicle onboarding and approval.
-6. Implement package/quote snapshots and zone validation.
-7. Implement transactional reservations and overlap tests.
-8. Replace browser-local booking creation with authenticated API calls.
+- Neon project: `twilight-morning-20216632`, branch `production`, database `neondb`.
+- Initial PostgreSQL schema applied transactionally; 31 domain tables created.
+- `schema_migrations` records `0001_initial`.
+- Vercel project `zafa` connected to GitHub repository `abdullahnuby/zafa`.
+- `DATABASE_URL` configured as a sensitive Vercel environment variable in production, preview, and development.
+- Runtime API uses `pg` connection pooling with Vercel Fluid's `attachDatabasePool`.
+- `GET /api/health` checks the live database.
+- `GET /api/v1/vehicles` returns approved chauffeur vehicles only.
+- The app header displays the live API/Neon connectivity status.
+
+## Current safety boundary
+
+- The customer/owner/driver/admin workspaces and sample inventory remain a **demo UI**. The role selector is not authentication.
+- The public vehicle API reads approved inventory from Neon. No fake vehicles were inserted.
+- Real OTP/sign-in, server-side RBAC, document upload/review, booking creation, transactional availability holds, payment provider/webhooks, refunds, and settlement posting are **not enabled**.
+- Do not accept customer bookings or money until identity, authorization, booking transaction/overlap protection, Egypt operating/legal classification, and payment integration are completed.
 
 ## Verification
 
-Run `npm test` from the project root. This currently verifies only the static HTTP shell and health endpoint, not business-domain correctness or database behavior.
+- Confirm Vercel deployment reaches `READY`.
+- Confirm `GET /api/health` returns `ok: true` and connects to Neon.
+- Confirm `GET /api/v1/vehicles` returns only approved inventory (currently expected to be empty until real vehicles are onboarded).
+- Run `npm test` before each deployment.
