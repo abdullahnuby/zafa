@@ -64,7 +64,7 @@ test("a profile lookup bootstraps a missing profile from the signed-in auth iden
 test("Egyptian mobile numbers normalize consistently for customer identities", () => {
   assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
   assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
-  assert.equal(normalizeEgyptianPhone("+20 12 1234 5678"), "+201599998877");
+  assert.equal(normalizeEgyptianPhone("+20 12 1234 5678"), "+201212345678");
   assert.equal(normalizeEgyptianPhone("01599998877"), "+201599998877");
   assert.equal(normalizeEgyptianPhone("01599998877"), null);
   assert.equal(normalizeEgyptianPhone("123"), null);
