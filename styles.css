@@ -181,3 +181,32 @@ body{background:linear-gradient(180deg,#fff8f6 0%,#fffaf7 48%,#fff7f3 100%);colo
  .field-wide{grid-column:auto}
  .weekday-picker{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+
+.admin-booking-list{display:grid;gap:13px}
+.admin-booking-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px}
+.admin-booking-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.admin-booking-head>b,.admin-booking-head div>b{display:block;color:var(--navy);font-size:13px}
+.admin-booking-head small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.admin-booking-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.admin-booking-meta span{background:#f7f5f0;border-radius:8px;padding:6px 9px;color:#687780;font-size:9px}
+.admin-booking-meta strong{margin-right:auto;color:var(--navy);font-size:12px}
+.admin-booking-addresses{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.admin-booking-addresses>div{background:#fbfaf7;border:1px solid #f0ede7;border-radius:10px;padding:9px;min-width:0}
+.admin-booking-addresses small,.admin-booking-addresses b{display:block}
+.admin-booking-addresses small{color:#9a8664;font-size:9px;margin-bottom:4px}
+.admin-booking-addresses b{color:#53616a;font-size:10px;line-height:1.7;overflow-wrap:anywhere}
+.admin-dispatch-list{margin-top:11px;border-top:1px solid #f0ede8}
+.admin-dispatch-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #f0ede8}
+.admin-dispatch-info{display:grid;gap:4px;min-width:0}
+.admin-dispatch-info>b{font-size:11px;color:var(--navy)}
+.admin-dispatch-info>small{font-size:9px;color:var(--muted);line-height:1.5}
+.admin-dispatch-control{display:flex;align-items:center;gap:7px;min-width:250px}
+.admin-dispatch-control select{min-width:0;flex:1;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff;color:var(--ink);font-size:10px}
+@media(max-width:720px){
+ .admin-booking-card{padding:11px}
+ .admin-booking-addresses{grid-template-columns:1fr}
+ .admin-dispatch-item{align-items:stretch;flex-direction:column}
+ .admin-dispatch-control{min-width:0;width:100%}
+ .admin-dispatch-control select{min-height:38px}
+}
