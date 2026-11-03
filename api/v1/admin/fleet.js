@@ -19,7 +19,12 @@ export default async function handler(req, res) {
         SELECT o.id, o.kind, o.legal_name, o.onboarding_status, o.contract_version,
                o.created_at, u.id AS user_id, u.display_name, u.phone_e164,
                u.email, u.is_active,
-               count(DISTINCT v.id)::int AS vehicle_count
+               count(DISTINCT v.id)::int AS vehicle_count,
+               (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                  'id',oc.id,'contractVersion',oc.contract_version,'url',oc.storage_key,
+                  'validFrom',oc.valid_from,'validTo',oc.valid_to,'status',oc.status
+                ) ORDER BY oc.created_at DESC),'[]'::jsonb)
+                  FROM public.owner_contracts oc WHERE oc.owner_id=o.id) AS contracts
           FROM public.owners o
           JOIN public.users u ON u.id = o.user_id
           LEFT JOIN public.vehicles v ON v.owner_id = o.id
@@ -30,7 +35,12 @@ export default async function handler(req, res) {
         SELECT d.id, d.user_id, d.verification_status, d.active, d.created_at,
                u.display_name, u.phone_e164, u.email, u.is_active,
                count(DISTINCT dd.id)::int AS document_count,
-               count(DISTINCT dd.id) FILTER (WHERE dd.review_status = 'pending')::int AS pending_documents
+               count(DISTINCT dd.id) FILTER (WHERE dd.review_status = 'pending')::int AS pending_documents,
+               (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                  'id',dd2.id,'documentType',dd2.document_type,'url',dd2.storage_key,
+                  'expiresOn',dd2.expires_on,'reviewStatus',dd2.review_status
+                ) ORDER BY dd2.created_at DESC),'[]'::jsonb)
+                  FROM public.driver_documents dd2 WHERE dd2.driver_id=d.id) AS documents
           FROM public.drivers d
           JOIN public.users u ON u.id = d.user_id
           LEFT JOIN public.driver_documents dd ON dd.driver_id = d.id
@@ -55,7 +65,12 @@ export default async function handler(req, res) {
                  ORDER BY vm.sort_order, vm.id LIMIT 1) AS image_url,
                (SELECT count(*)::int FROM public.vehicle_documents vd WHERE vd.vehicle_id = v.id) AS document_count,
                (SELECT count(*)::int FROM public.vehicle_documents vd
-                 WHERE vd.vehicle_id = v.id AND vd.review_status = 'pending') AS pending_documents
+                 WHERE vd.vehicle_id = v.id AND vd.review_status = 'pending') AS pending_documents,
+               (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                  'id',vd2.id,'documentType',vd2.document_type,'url',vd2.storage_key,
+                  'expiresOn',vd2.expires_on,'reviewStatus',vd2.review_status
+                ) ORDER BY vd2.created_at DESC),'[]'::jsonb)
+                  FROM public.vehicle_documents vd2 WHERE vd2.vehicle_id=v.id) AS documents
           FROM public.vehicles v
           JOIN public.owners o ON o.id = v.owner_id
          ORDER BY v.created_at DESC
