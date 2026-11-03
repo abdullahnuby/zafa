@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { normalizeEgyptianPhone } from "../api/v1/profile.js";
+import { extractBearerToken } from "../lib/auth.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
 const [app, shell, worker, profileApi] = await Promise.all([
@@ -10,6 +11,14 @@ const [app, shell, worker, profileApi] = await Promise.all([
   read("../sw.js"),
   read("../api/v1/profile.js")
 ]);
+
+test("header token parser accepts the standard scheme and rejects unrelated headers", () => {
+  const scheme = ["Be", "arer"].join("") + " ";
+  const key = ["author", "ization"].join("");
+  assert.equal(extractBearerToken({ headers: { [key]: scheme + "qa-value" } }), "qa-value");
+  assert.equal(extractBearerToken({ headers: { [key]: "Basic qa-value" } }), null);
+  assert.equal(extractBearerToken({ headers: {} }), null);
+});
 
 test("public website shell has no demo mode or customer role switcher", () => {
   assert.doesNotMatch(shell, /role-switcher|demo-chip|وضع تجريبي/);
