@@ -17,7 +17,7 @@ test("public website shell has no demo mode or customer role switcher", () => {
 });
 
 test("guest visitors can browse and authentication is gated at booking intent", () => {
-  assert.ok(app.includes("تقدر تتصفح زفّة من غير حساب"));
+  assert.ok(app.includes("اتفرّج على زفّة براحتك"));
   assert.ok(app.includes('if(!authSession?.user){pendingBookingCarId=id;openAuthModal("signin");return;}'));
   assert.ok(app.includes("function showBookingUnavailable(id)"));
 });
