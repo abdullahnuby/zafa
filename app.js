@@ -863,7 +863,26 @@ document.addEventListener('click',event=>{
  else if(action==='add-car')addCar();
  else if(action==='save-car')saveCar();
  else if(action==='edit-car')editCar(id);
- else if(action==='approve-car'||action==='reject-car'){const c=carById(id);if(c)c.approval=action==='approve-car'?'approved':'rejected';persist();render();toast(action==='approve-car'?'تم تغيير الحالة إلى معتمدة تجريبيًا':'تم رفض السيارة تجريبيًا',true);}
+ else if(action==='save-car-update')saveCarUpdate();
+ else if(action==='vehicle-decision')decideVehicle(id,btn.dataset.decision);
+ else if(action==='reload-fleet')loadAdminFleet().then(render).catch(e=>toast(adminErrorMessage(e)));
+ else if(action==='add-owner')addOwner();
+ else if(action==='save-owner')saveOwner();
+ else if(action==='add-driver')addDriver();
+ else if(action==='save-driver')saveDriver();
+ else if(action==='add-owner-contract')addPersonDocument('owner',id);
+ else if(action==='add-driver-doc')addPersonDocument('driver',id);
+ else if(action==='save-person-document')savePersonDocument();
+ else if(action==='person-status')updatePersonStatus(btn.dataset.kind,id,btn.dataset.status,btn.dataset.active===undefined?undefined:btn.dataset.active==='true');
+ else if(action==='review-document')reviewAdminDocument(btn.dataset.kind,id,btn.dataset.decision);
+ else if(action==='add-vehicle-doc')addVehicleDocument(id);
+ else if(action==='save-vehicle-document')saveVehicleDocument();
+ else if(action==='add-rule')addVehicleRule(id||null);
+ else if(action==='add-block')addAvailabilityBlock();
+ else if(action==='save-rule')saveAvailabilityRule();
+ else if(action==='save-block')saveAvailabilityBlock();
+ else if(action==='delete-availability')deleteAvailability(btn.dataset.kind,id);
+ else if(action==='copy-admin-password')copyAdminPassword();
 });
 
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeModal();});
