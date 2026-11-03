@@ -3,7 +3,9 @@
 **Date:** 2026-11-03  
 **Repository:** `abdullahnuby/zafa`, branch `main`  
 **Production site:** https://zafa-orcin.vercel.app  
-**Vercel project:** `zafa` (`prj_uoHCquRZvbL5q9emDDpVHpuDHAXR`)  
+**Fix commit:** https://github.com/abdullahnuby/zafa/commit/3e20ea0b26b8039e55d5a265db332328168886f9  
+**CI run:** https://github.com/abdullahnuby/zafa/actions/runs/41694899797  
+**Vercel deployment:** https://vercel.com/abdullahelmassry-7339s-projects/zafa/FNooLdgPF45BjxFiKnRLhszCCBDH  
 **Neon:** project `twilight-morning-20216632`, branch `production` (`br-super-resonance-bedi3tom`), database `neondb`
 
 ## Issue investigated
@@ -23,6 +25,15 @@ The browser took `authData.session.token` from the Better Auth sign-in response 
 - Updated `test/guest-access.test.mjs` to guard against reintroducing the old behavior.
 - Added `test/client-auth-token.test.mjs` covering signed JWT retrieval, opaque session-id rejection, absent token, API errors, and missing SDK support.
 
+## Verification results
+
+<badge-placeholder />
+
+- **GitHub Actions run #64: SUCCESS.** JavaScript syntax checks passed and `npm test` passed **29/29 tests**, with 0 failures and 0 skipped tests.
+- The first run for the code commit exposed a malformed regular-expression assertion in the new test (the application syntax check passed). The test assertion was simplified and corrected in the following commit; the complete run #64 then passed.
+- **Vercel production deployment: READY.** Deployment `dpl_FNooLdgPF45BjxFiKnRLhszCCBDH` points to fix commit `3e20ea0b26b8039e55d5a265db332328168886f9` and has the production alias `zafa-orcin.vercel.app`.
+- The CI tests validate the JWT helper and the profile/API client contract. A real sign-in from the customer's browser has not been performed by this integration; please verify it once in the refreshed browser session.
+
 ## Production/database inspection
 
 - Neon Managed Auth is enabled with the Better Auth provider on the production branch.
@@ -31,12 +42,6 @@ The browser took `authData.session.token` from the Better Auth sign-in response 
 - Applied migration history: `0001_initial`, `0002_payment_auth_receipts`, `0003_auth_identity_unique_constraint`.
 - The customer's existing application profile and Auth identity were present during inspection.
 - **No production SQL writes, migration, user/profile edit, role edit, password reset, or session deletion was performed.**
-
-## Verification
-
-- `.github/workflows/quality.yml` runs JavaScript syntax checks and `npm test` on pushes to `main`.
-- The post-push GitHub Actions run and Vercel deployment must be checked before calling the fix verified in production.
-- Local `npm test` was not executed in this environment; authoritative test execution is delegated to the repository's GitHub Actions workflow.
 
 ## Remaining product launch gates
 

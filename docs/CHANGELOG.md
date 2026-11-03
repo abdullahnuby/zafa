@@ -5,7 +5,8 @@
 - Sign-in and session restoration now obtain the signed API credential exclusively through `authClient.token()` and `data.token`; the opaque session identifier is never sent as a Bearer token.
 - Extracted token retrieval into `lib/client-auth-token.mjs` and added unit plus acceptance regression coverage.
 - Read-only production checks confirmed the customer identity/profile and session records remain present. No customer row, password, role, session, schema, or database migration was changed.
-- The GitHub quality workflow and Vercel production deployment are used to verify this fix after push.
+- Verification completed: GitHub Actions run #64 passed JavaScript syntax checks and all 29 tests (0 failures); Vercel deployment `dpl_FNooLdgPF45BjxFiKnRLhszCCBDH` reached `READY` and received the production alias `zafa-orcin.vercel.app`.
+- The first CI run caught an over-escaped test assertion; it was corrected in the next commit and the repeat run passed.
 
 ## 2026-11-03 — Guest browsing and PWA refresh
 - Keep the public catalog and site accessible without customer authentication.
