@@ -73,8 +73,10 @@ CREATE TABLE vehicle_media (
   vehicle_id uuid NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
   storage_key text NOT NULL,
   media_type text NOT NULL DEFAULT 'photo',
-  sort_order int NOT NULL DEFAULT 0,
-  approved boolean NOT NULL DEFAULT false
+  sort_order int NOT NULL DEFAULT 0 CHECK (sort_order BETWEEN 0 AND 2),
+  approved boolean NOT NULL DEFAULT false,
+  CONSTRAINT vehicle_media_vehicle_sort_order_unique
+    UNIQUE (vehicle_id, sort_order) DEFERRABLE INITIALLY DEFERRED
 );
 CREATE TABLE packages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
