@@ -1,53 +1,47 @@
-# ZAFFA — Latest Engineering Handoff
+# ZAFFA — Latest Technical Handoff
 
-## Milestone
+**Date:** 2026-11-03  
+**Repository:** `abdullahnuby/zafa`, branch `main`  
+**Production site:** https://zafa-orcin.vercel.app  
+**Vercel project:** `zafa` (`prj_uoHCquRZvbL5q9emDDpVHpuDHAXR`)  
+**Neon:** project `twilight-morning-20216632`, branch `production` (`br-super-resonance-bedi3tom`), database `neondb`
 
-`0.1.0` — interactive Arabic RTL PWA prototype.
+## Issue investigated
 
-## Implemented
+The customer login screen reported that the credentials had been validated but the customer profile service rejected the session.
 
-- Customer surface: home, vehicle browsing/filtering, vehicle details, booking form, packages, add-ons, payment-intent selection, booking list, favorites, account.
-- Owner surface: overview, vehicle records, new vehicle onboarding request, owner booking decisions, calendar view, estimated earnings/settlements.
-- Driver surface: task details and permitted service-state demo progression.
-- Admin surface: operations overview, booking register, vehicle approval queue, partner overview, finance and reporting screens.
-- Booking rules: priced package/extras math, manual quote requirement for outside-zone distance, owner-type-dependent initial status, allowed state transitions, illustrative commission math.
-- Browser-local demo persistence, PWA shell, static Node HTTP server, API health descriptor.
-- Draft PostgreSQL data model and endpoint contract.
+### Root cause
 
-## Files
+The browser took `authData.session.token` from the Better Auth sign-in response and sent it as `Authorization: Bearer ...`. This value is an opaque session identifier, not the signed JWT expected by ZAFFA's protected APIs. `lib/auth.js` correctly verifies Bearer JWTs against the Neon Auth issuer and JWKS, so the profile request returned HTTP 401 after the password step had succeeded.
 
-- `index.html`, `styles.css`, `app.js`
-- `booking-rules.mjs`, `server.mjs`, `sw.js`, `manifest.webmanifest`, `icon.svg`
-- `database/schema.sql`
-- `docs/PRODUCT_SCOPE.md`
-- `docs/API_CONTRACT.md`
-- `docs/DESIGN_HANDOFF.md`
-- `docs/IMPLEMENTATION_STATUS.md`
-- `tests/booking-rules.test.mjs`
-- `tests/server.test.mjs`
+### Code changes
 
-## Exact verification commands
+- Added `lib/client-auth-token.mjs` as the shared, testable JWT retrieval helper.
+- The helper calls `authClient.token()` and accepts only `result.data.token`.
+- `app.js` now uses that helper for post-login profile loading and session restoration.
+- Removed the path that forwards `authData.session.token` as an API bearer credential.
+- Updated `test/guest-access.test.mjs` to guard against reintroducing the old behavior.
+- Added `test/client-auth-token.test.mjs` covering signed JWT retrieval, opaque session-id rejection, absent token, API errors, and missing SDK support.
 
-```bash
-node --check app.js
-node --check server.mjs
-npm test
-```
+## Production/database inspection
 
-Result: **11 tests passed, 0 failed** on 2026-11-03.
+- Neon Managed Auth is enabled with the Better Auth provider on the production branch.
+- Production Vercel environment entries for `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_JWKS_URL` are configured. Secret values were not read or copied into source control.
+- Read-only production counts: 1 application user, 1 linked Auth identity, 1 application role row, 3 recorded migrations, and 4 Auth sessions.
+- Applied migration history: `0001_initial`, `0002_payment_auth_receipts`, `0003_auth_identity_unique_constraint`.
+- The customer's existing application profile and Auth identity were present during inspection.
+- **No production SQL writes, migration, user/profile edit, role edit, password reset, or session deletion was performed.**
 
-Coverage: package/extra arithmetic; rejection of unknown and unpriced manual extras; supply-dependent initial booking status; valid/invalid booking transitions; commission calculation; health response; root RTL shell; 404 behavior; static JS/CSS/PWA assets; and path traversal safety.
+## Verification
 
-## Known blockers / not implemented
+- `.github/workflows/quality.yml` runs JavaScript syntax checks and `npm test` on pushes to `main`.
+- The post-push GitHub Actions run and Vercel deployment must be checked before calling the fix verified in production.
+- Local `npm test` was not executed in this environment; authoritative test execution is delegated to the repository's GitHub Actions workflow.
 
-- No GitHub ZAFFA repository was present in the connected account; this source package has not been pushed to GitHub.
-- No authenticated API or database connection exists. The browser demo uses `localStorage` only.
-- PostgreSQL schema is a draft and has not been applied or validated against a live database.
-- No transactionally enforced reservation holds, no double-booking guarantee, no expiry worker, and no concurrency tests.
-- No real OTP/authentication/RBAC, payment gateway/webhooks/refunds, ledger posting, owner payouts, or SMS/push.
-- No actual identity/vehicle/driver document verification, private object storage, GPS, legal classification review, insurance review, or signed contracts.
-- Browser-based visual automation could not be completed in this runtime; headless Chromium stalled even on a blank page. Syntax, HTTP, and domain-rule tests passed.
+## Remaining product launch gates
 
-## Required next step
-
-Create/choose the GitHub repository and implement Milestone 1 backend: PostgreSQL migrations and API, authenticated identities/RBAC, approved vehicle onboarding, zone/package quotes, and an atomic reservation/booking transaction with real overlap tests. Only then connect the prototype UI to persistent API data. Do not enable real payments before the PSP model and legal review are signed off.
+- Guest visitors can browse the catalogue without an account; sign-in is required only when starting a booking.
+- SMS phone-ownership verification and SMS password recovery still need a provider and webhook. An internal phone alias is not proof of phone ownership.
+- Transactional quote/booking creation, expiring reservation holds, database-enforced no-overlap under concurrent requests, and complete owner/driver dispatch are still launch blockers.
+- No payment gateway is connected. Uploaded InstaPay receipts remain evidence for manual review, and cash must be confirmed by an authorized employee.
+- Keep live reservation acceptance and money collection disabled until booking transaction safety, role-specific end-to-end testing, and Egyptian operating/legal review are complete.

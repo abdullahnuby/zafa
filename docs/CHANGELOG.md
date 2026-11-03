@@ -1,5 +1,12 @@
 # ZAFFA Changelog
 
+## 2026-11-03 — Fix valid customer sign-in rejected by profile API
+- Root cause: the frontend forwarded Better Auth's opaque `session.token` as a Bearer JWT. Password authentication could succeed, but the profile API correctly rejected the non-JWT value during Neon JWKS verification.
+- Sign-in and session restoration now obtain the signed API credential exclusively through `authClient.token()` and `data.token`; the opaque session identifier is never sent as a Bearer token.
+- Extracted token retrieval into `lib/client-auth-token.mjs` and added unit plus acceptance regression coverage.
+- Read-only production checks confirmed the customer identity/profile and session records remain present. No customer row, password, role, session, schema, or database migration was changed.
+- The GitHub quality workflow and Vercel production deployment are used to verify this fix after push.
+
 ## 2026-11-03 — Guest browsing and PWA refresh
 - Keep the public catalog and site accessible without customer authentication.
 - Request sign-in only when a guest chooses to begin a booking.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 — Correct Neon Auth bearer JWT handling
+- Always use the signed JWT returned by the Neon Auth JWT plugin `token()` method for protected API calls.
+- Never treat Better Auth's opaque `session.token` identifier as a JWT.
+- Add an isolated token helper and regression tests for the post-login 401 failure.
+- Preserve customer records and Auth sessions; no database migration is required.
+
 ## 0.1.0 — First interactive prototype
 
 - Added Arabic RTL responsive customer, owner, driver, and admin workspaces.

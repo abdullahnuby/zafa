@@ -5,7 +5,7 @@ Updated: 2026-11-03
 ## Identity
 - Primary brand: زفّة | ZAFFA.
 - Visual identity: the wedding car, interlocked rings, diamond and gold arch mark in `logo.svg`; compact app icon in `icon.svg`.
-- Palette: deep navy and champagne gold.
+- Palette: ivory, blush, mauve, and champagne.
 
 ## Payment policy and configuration
 - Supported methods: InstaPay deposit and cash only.

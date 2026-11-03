@@ -1,38 +1,35 @@
 # Implementation Status
 
-## Milestone 0 — Interactive product prototype
+Updated: 2026-11-03
 
-Status: implemented.
+## Milestone 1 — Neon + Vercel identity and payment foundation
 
-- Arabic RTL responsive PWA shell.
-- Customer, owner, driver, and admin demo workspaces.
-- Demo booking flow, package selection, add-ons, owner decisions, and driver status progression.
-- Browser-local demo persistence.
+Status: infrastructure and identity/payment API foundations are present; live booking transactions remain unfinished.
 
-## Milestone 1 — Neon + Vercel backend foundation
+- Neon production project: `twilight-morning-20216632`, branch `production`, database `neondb`.
+- Domain schema and migrations `0001_initial`, `0002_payment_auth_receipts`, and `0003_auth_identity_unique_constraint` are applied and recorded in `public.schema_migrations`.
+- Neon Managed Auth (Better Auth) is enabled on production.
+- Customer registration/sign-in uses Egyptian mobile number and password in the interface. The current Managed Auth integration maps the normalized phone to an internal non-deliverable email alias because the managed client exposes email/password sign-in methods.
+- The browser obtains a signed API JWT through the Neon Auth JWT plugin `authClient.token()` method. The server validates that JWT using `jose`, the configured issuer, and Neon Auth JWKS.
+- `GET/POST /api/v1/profile` links an authenticated Neon identity to an application profile; missing profiles may be recovered only from a matching internal phone alias. Customer privileges are stored in `public.user_roles` and checked server-side for protected operations.
+- Guest browsing remains public; sign-in is requested only when a visitor starts a booking.
+- `GET /api/health` checks the database. `GET /api/v1/vehicles` exposes approved vehicle inventory only.
+- Payment method settings and private receipt upload/review/cash-confirmation endpoints are present. Review and cash confirmation require authorized roles and audit records.
+- Production Vercel has the database URL, Neon Auth base URL, and JWKS environment entries. Secret values remain outside source control.
 
-Status: infrastructure configured; first API endpoints committed.
+## Authentication repair — 2026-11-03
 
-- Neon project: `twilight-morning-20216632`, branch `production`, database `neondb`.
-- Initial PostgreSQL schema applied transactionally; 31 domain tables created.
-- `schema_migrations` records `0001_initial`.
-- Vercel project `zafa` connected to GitHub repository `abdullahnuby/zafa`.
-- `DATABASE_URL` configured as a sensitive Vercel environment variable in production, preview, and development.
-- Runtime API uses `pg` connection pooling with Vercel Fluid's `attachDatabasePool`.
-- `GET /api/health` checks the live database.
-- `GET /api/v1/vehicles` returns approved chauffeur vehicles only.
-- The app header displays the live API/Neon connectivity status.
+The frontend previously sent Better Auth's opaque `session.token` value as a Bearer JWT after successful password authentication. That caused the profile API to reject the request with HTTP 401. The client now uses only the signed JWT returned by `authClient.token()`. Regression tests protect this distinction. Existing customer records and Auth sessions were preserved; no DB migration was needed.
 
-## Current safety boundary
+## Current launch boundary
 
-- The customer/owner/driver/admin workspaces and sample inventory remain a **demo UI**. The role selector is not authentication.
-- The public vehicle API reads approved inventory from Neon. No fake vehicles were inserted.
-- Real OTP/sign-in, server-side RBAC, document upload/review, booking creation, transactional availability holds, payment provider/webhooks, refunds, and settlement posting are **not enabled**.
-- Do not accept customer bookings or money until identity, authorization, booking transaction/overlap protection, Egypt operating/legal classification, and payment integration are completed.
+- SMS phone-ownership verification and SMS password reset are not implemented; a phone alias must not be described as a verified phone number.
+- No payment gateway or verified payment webhook is connected. InstaPay receipts are manual-review evidence and do not automatically mark a payment as captured.
+- Transactional quotes, booking creation, expiring reservation holds, and no-double-booking guarantees under concurrent requests remain unfinished.
+- Complete owner/driver dispatch, notification delivery, cancellation/refund policy, and the Egypt operating/legal review remain launch gates.
+- Do not enable live reservation acceptance or money collection until the above controls and end-to-end role checks are complete.
 
 ## Verification
 
-- Confirm Vercel deployment reaches `READY`.
-- Confirm `GET /api/health` returns `ok: true` and connects to Neon.
-- Confirm `GET /api/v1/vehicles` returns only approved inventory (currently expected to be empty until real vehicles are onboarded).
-- Run `npm test` before each deployment.
+- `.github/workflows/quality.yml` performs JavaScript syntax checks and `npm test` on pushes to `main`.
+- After each source change, inspect the actual GitHub Actions result and Vercel production deployment. A Git push alone is not a passing test or proof of deployment.

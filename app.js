@@ -1,4 +1,5 @@
 import { createAuthClient } from '@neondatabase/auth';
+import { getAuthBearerToken } from './lib/client-auth-token.mjs';
 import { PACKAGE_CODES, ADD_ONS, calculateQuote, calculateDeposit, assertBookingTransition } from './booking-rules.mjs';
 const STORAGE_KEY = 'zaffa_product_v1';
 const TODAY = new Date();
@@ -183,18 +184,8 @@ function go(view){state.view=view;persist();render();window.scrollTo({top:0,beha
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
-async function getAuthToken(sessionToken=null){
- if(typeof sessionToken==="string"&&sessionToken.length>20)return sessionToken;
- if(typeof authClient.token!=="function")throw new Error("AUTH_TOKEN_METHOD_UNAVAILABLE");
- const result=await authClient.token();
- if(result?.error){
-  const error=new Error(result.error.message||result.error.code||"AUTH_TOKEN_FAILED");
-  error.status=result.error.status||result.error.statusCode||0;
-  error.code=result.error.code||"AUTH_TOKEN_FAILED";
-  throw error;
- }
- const token=result?.data?.token;
- return typeof token==="string"&&token.length>20?token:null;
+async function getAuthToken(){
+ return getAuthBearerToken(authClient);
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
@@ -272,8 +263,7 @@ async function submitAuth(){
   const authData=r?.data||null;
   if(authData?.user)authSession={user:authData.user,session:null};
   stage="token";
-  const jwtFromSignIn=authData?.session?.token||null;
-  const jwtToken=await getAuthToken(jwtFromSignIn);
+  const jwtToken=await getAuthToken();
   if(!jwtToken){
    if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
    throw new Error("AUTH_TOKEN_UNAVAILABLE");

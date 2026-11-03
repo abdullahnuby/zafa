@@ -5,11 +5,12 @@ import { normalizeEgyptianPhone, phoneFromInternalAuthEmail } from "../api/v1/pr
 import { extractBearerToken } from "../lib/auth.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
-const [app, shell, worker, profileApi] = await Promise.all([
+const [app, shell, worker, profileApi, tokenHelper] = await Promise.all([
   read("../app.js"),
   read("../index.html"),
   read("../sw.js"),
-  read("../api/v1/profile.js")
+  read("../api/v1/profile.js"),
+  read("../lib/client-auth-token.mjs")
 ]);
 
 test("header token parser accepts the standard scheme and rejects unrelated headers", () => {
@@ -41,10 +42,11 @@ test("customer registration and sign-in use phone and password without an email 
   assert.ok(profileApi.includes('email: row.email?.endsWith("@phone.zaffa.invalid") ? null : row.email'));
 });
 
-test("Neon Auth JWT is retrieved from the direct JWT plugin endpoint", () => {
-  assert.match(app, /authClient\.token\(\)/);
-  assert.doesNotMatch(app, /authClient\.getJWTToken\?\.\(\)/);
-  assert.match(app, /authData\?\.session\?\.token/);
+test("Neon Auth API requests use a signed JWT, never an opaque session identifier", () => {
+  assert.match(app, /getAuthBearerToken\\(authClient\\)/);
+  assert.doesNotMatch(app, /authData\\?\\.session\\?\\.token/);
+  assert.match(tokenHelper, /authClient\\.token\\(\\)/);
+  assert.doesNotMatch(app, /authClient\\.getJWTToken\\?\\.\\(\\)/);
 });
 
 test("orphaned phone identities can be recovered to a customer profile", () => {
@@ -74,7 +76,7 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-  assert.ok(app.includes("authClient.token()"));
+  assert.ok(tokenHelper.includes("authClient.token()"));
   assert.ok(!app.includes("authClient.getJWTToken?.()"));
 });
 
