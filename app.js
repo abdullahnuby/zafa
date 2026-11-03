@@ -366,6 +366,7 @@ function adminErrorMessage(error){
   INVALID_EGYPTIAN_PHONE:"رقم الموبايل المصري غير صحيح.",
   PHONE_ALREADY_LINKED:"رقم الهاتف مرتبط بحساب آخر بالفعل.",
   AUTH_PHONE_IDENTITY_MISMATCH:"رقم الحساب لا يطابق رقم الهاتف الذي أدخلته.",
+  PROFILE_IDENTITY_CONFLICT:"يوجد تعارض بين ملف الهاتف وحساب الدخول؛ لم يتم ربطهما حفاظًا على الحسابات الحالية.",
   OWNER_NOT_FOUND:"المالك المحدد غير موجود.",
   OWNER_NOT_APPROVED:"يجب اعتماد ملف المالك قبل نشر السيارة.",
   OWNER_CONTRACT_REQUIRED:"أضف عقد المالك وراجعه واعتمده قبل تفعيل الحساب.",
