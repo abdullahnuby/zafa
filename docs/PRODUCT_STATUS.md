@@ -25,6 +25,10 @@ Updated: 2026-11-03
 - Receipt upload is checked against the signed-in customer's own pending InstaPay payment.
 - Receipt review and cash confirmation are protected by admin/finance_admin roles and audit logs.
 
+## Customer interface
+- Public presentation uses a bright wedding palette (ivory, blush, mauve, champagne) and wedding-car photographs.
+- Hero photo attribution: Mark Cantle / Unsplash. Floral-detail photo attribution: Valdemars Magone / Unsplash. Both are published under the Unsplash License.
+
 ## Customer access
 - The public catalog and marketing pages are guest-accessible; account creation is not required to browse.
 - Customer sign-in is requested only after the customer chooses to start a booking.

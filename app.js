@@ -27,10 +27,10 @@ let browseFilter = 'all';
 let bookingDraft = null;
 
 const roleConfig = {
-  customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','⌂'],['cars','السيارات','◇'],['bookings','حجوزاتي','▤'],['favorites','المفضلة','♡'],['account','حسابي','◎']]},
-  owner: {label:'مالك سيارة',default:'owner-overview',nav:[['owner-overview','ملخص المالك','⌂'],['owner-vehicles','سياراتي','◇'],['owner-requests','طلبات الحجز','▤'],['owner-calendar','التوافر','▦'],['owner-earnings','الأرباح والتسويات','◈']]},
-  driver: {label:'سائق',default:'driver-tasks',nav:[['driver-tasks','مهامي','⌖'],['driver-history','سجل الرحلات','▤'],['driver-account','حسابي','◎']]},
-  admin: {label:'إدارة زفّة',default:'admin-overview',nav:[['admin-overview','مركز العمليات','⌂'],['admin-bookings','الحجوزات','▤'],['admin-vehicles','اعتماد السيارات','◇'],['admin-people','الملاك والسائقون','♙'],['admin-finance','المالية والتسويات','◈'],['admin-reports','التقارير','▥']]}
+  customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','🏡'],['cars','السيارات','🚘'],['bookings','حجوزاتي','🗓️'],['favorites','المفضلة','💗'],['account','حسابي','👤']]},
+  owner: {label:'مالك سيارة',default:'owner-overview',nav:[['owner-overview','ملخص المالك','📊'],['owner-vehicles','سياراتي','🚗'],['owner-requests','طلبات الحجز','📩'],['owner-calendar','التوافر','🗓️'],['owner-earnings','الأرباح والتسويات','💰']]},
+  driver: {label:'سائق',default:'driver-tasks',nav:[['driver-tasks','مهامي','🧭'],['driver-history','سجل الرحلات','🚦'],['driver-account','حسابي','👤']]},
+  admin: {label:'إدارة زفّة',default:'admin-overview',nav:[['admin-overview','مركز العمليات','🎛️'],['admin-bookings','الحجوزات','📋'],['admin-vehicles','اعتماد السيارات','🚘'],['admin-people','الملاك والسائقون','👥'],['admin-finance','المالية والتسويات','💳'],['admin-reports','التقارير','📈']]}
 };
 const viewTitles = {
   home:'الرئيسية',cars:'اكتشف السيارات',bookings:'حجوزاتي',favorites:'المفضلة',account:'حسابي',
@@ -55,7 +55,7 @@ function carCard(car){
 }
 function pageHeading(kicker,title,desc,button=''){return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${desc}</p></div>${button}</div>`;}
 function statCard(icon,label,value,foot){return `<div class="stat-card"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-icon">${icon}</span></div><div class="stat-value">${value}</div><div class="stat-foot">${foot}</div></div>`;}
-function navButton(item,active){return `<button class="nav-item ${active?'active':''}" data-action="go" data-view="${item[0]}"><span class="nav-icon">${item[2]}</span><span>${item[1]}</span></button>`;}
+function navButton(item,active){return `<button class="nav-item ${active?'active':''}" data-action="go" data-view="${item[0]}"><span class="nav-icon">${item[2]}</span><span class="nav-label">${item[1]}</span></button>`;}
 function renderNav(){
   const cfg=roleConfig[state.role];
   document.querySelector('#side-nav').innerHTML=cfg.nav.map(n=>navButton(n,n[0]===state.view)).join('');
@@ -73,14 +73,53 @@ function render(){
 }
 function renderHome(){
  const featured=state.cars.filter(c=>c.approval==='approved').slice(0,3);
- return `${`<div class="hero"><div class="hero-copy"><div class="hero-kicker">لحظتك الكبيرة تستحق بداية مختلفة</div><h1>وصول يليق<br>بأجمل يوم في حياتك</h1><p>اختار عربيتك، وحدد تفاصيل مناسبتك، وسيب علينا تنظيم الرحلة.</p><button class="btn btn-gold" data-action="go" data-view="cars">اكتشف السيارات <span>←</span></button></div><div class="hero-ornament"></div></div>`}
- <div class="search-panel"><div class="field"><label>المناسبة</label><select id="home-occasion"><option>زفاف</option><option>خطوبة</option><option>كتب كتاب</option><option>مناسبة خاصة</option></select></div><div class="field"><label>تاريخ المناسبة</label><input id="home-date" type="date" min="${isoDate(TODAY)}" value="${escapeHtml(state.searchDate)}"></div><div class="field"><label>منطقة الانطلاق</label><select id="home-zone"><option>وسط الأقصر</option><option>الكرنك</option><option>العوامية</option><option>البياضية</option><option>القرنة</option><option>البر الغربي</option></select></div><button class="btn btn-primary" data-action="search-cars">ابحث عن سيارة <span>←</span></button></div>
- <div class="section-head"><div><h2>سيارات مختارة ليك</h2><p>مجموعة من السيارات المعتمدة والمتاحة للطلب</p></div><button class="text-link" data-action="go" data-view="cars">عرض كل السيارات ←</button></div>
- ${featured.length?'<div class="car-grid">'+featured.map(carCard).join('')+'</div>':'<div class="panel empty-state"><div class="empty-icon">◇</div><b>قريبًا: أول مجموعة سيارات معتمدة</b><p>قاعدة زفّة جاهزة لاستقبال السيارات الحقيقية. لن نعرض سيارات أو أسعارًا تجريبية للعملاء.</p></div>'}
- <div class="section-head"><div><h2>الحجز مع زفّة في 3 خطوات</h2><p>تجربة واضحة من الاختيار لحد انتهاء المناسبة</p></div></div>
- <div class="stats-grid">${statCard('◇','اختار عربيتك','01','صور ومواصفات واضحة')}${statCard('▦','حدد التفاصيل','02','موعد وباقة وسعر نهائي')}${statCard('✓','استمتع بالمناسبة','03','سائق ومتابعة للحجز')}</div>
- <div class="payment-methods-strip">
-   <div class="payment-method-card"><span class="payment-method-icon">↗</span><div><b>إنستا باي</b><small id="instapay-home-status">يتفعّل بعد إضافة بيانات حساب الاستلام، ويخضع الإيصال للمراجعة</small></div></div>
+ return `
+ <section class="hero hero-wedding">
+   <img class="hero-photo" src="https://images.unsplash.com/photo-1748840092111-05f67ab7a321?auto=format&fit=crop&w=1800&q=85" alt="سيارة مرسيدس بيضاء في أجواء مناسبة أنيقة" fetchpriority="high">
+   <div class="hero-shade"></div>
+   <div class="hero-copy">
+     <div class="hero-kicker"><span>✦</span> لكل حكاية بداية جميلة</div>
+     <h1>يومك فرحة…<br><em>ووصولك حكاية</em></h1>
+     <p>اختار عربية تليق بلحظتك، وسيب علينا تفاصيل المشوار.</p>
+     <button class="btn btn-gold" data-action="go" data-view="cars">اكتشف سيارات زفّة <span>←</span></button>
+     <div class="hero-trust"><span>✿</span> سيارات معتمدة <i></i><span>♡</span> تجربة تليق بيومك</div>
+   </div>
+   <div class="hero-sticker"><span>💍</span><b>لحظتك<br>الأجمل</b></div>
+ </section>
+ <section class="search-panel wedding-search">
+   <div class="search-heading"><span class="search-heading-icon">✨</span><div><b>خلّينا نرتب فرحتك</b><small>اختار المناسبة والتاريخ ومكان الانطلاق</small></div></div>
+   <div class="search-fields">
+    <div class="field"><label>🎉 المناسبة</label><select id="home-occasion"><option>زفاف</option><option>خطوبة</option><option>كتب كتاب</option><option>مناسبة خاصة</option></select></div>
+    <div class="field"><label>📅 تاريخ المناسبة</label><input id="home-date" type="date" min="${isoDate(TODAY)}" value="${escapeHtml(state.searchDate)}"></div>
+    <div class="field"><label>📍 منطقة الانطلاق</label><select id="home-zone"><option>وسط الأقصر</option><option>الكرنك</option><option>العوامية</option><option>البياضية</option><option>القرنة</option><option>البر الغربي</option></select></div>
+    <button class="btn btn-primary search-submit" data-action="search-cars">اعثر على عربيتك <span>←</span></button>
+   </div>
+ </section>
+ <section class="occasion-section">
+   <div class="section-head"><div><span class="eyebrow">اختار مناسبتك</span><h2>كل فرحة وليها زفّتها</h2><p>ابدأ من نوع اليوم اللي مستنيه</p></div></div>
+   <div class="occasion-tiles">
+    <button class="occasion-tile occasion-rose" data-action="occasion" data-value="زفاف"><span class="occasion-emoji">💍</span><b>زفاف</b><small>دخلة تفضل في الذاكرة</small><span class="occasion-arrow">←</span></button>
+    <button class="occasion-tile occasion-lilac" data-action="occasion" data-value="خطوبة"><span class="occasion-emoji">🌷</span><b>خطوبة</b><small>بداية حكاية جديدة</small><span class="occasion-arrow">←</span></button>
+    <button class="occasion-tile occasion-peach" data-action="occasion" data-value="كتب كتاب"><span class="occasion-emoji">✨</span><b>كتب كتاب</b><small>تفاصيل بسيطة ومميزة</small><span class="occasion-arrow">←</span></button>
+   </div>
+ </section>
+ <section class="featured-section">
+  <div class="section-head"><div><span class="eyebrow">اختيارات زفّة</span><h2>سيارات مختارة ليك</h2><p>هنعرض هنا العربيات الحقيقية بعد اعتمادها</p></div><button class="text-link" data-action="go" data-view="cars">عرض كل السيارات ←</button></div>
+  ${featured.length?'<div class="car-grid">'+featured.map(carCard).join('')+'</div>':`<div class="empty-state wedding-empty">
+   <div class="empty-state-photo"><img src="https://images.unsplash.com/photo-1691343327025-4b0cc1dc053f?auto=format&fit=crop&w=900&q=80" alt="تفصيلة زهور على سيارة مناسبة" loading="lazy"><span>🌸</span></div>
+   <div class="empty-state-copy"><div class="empty-state-kicker">قريبًا في زفّة</div><h3>أول أسطول فرحتك بيتجهّز</h3><p>بنضيف السيارات المعتمدة واحدة واحدة، بصورها وأسعارها وتفاصيلها الحقيقية. مش هنعرض صور أو أسعار لسيارات مش موجودة.</p><button class="btn btn-soft" data-action="go" data-view="cars">استكشف زفّة <span>←</span></button></div>
+  </div>`}
+ </section>
+ <section class="journey-section">
+  <div class="section-head"><div><span class="eyebrow">بكل بساطة</span><h2>زفّتك في 3 خطوات</h2><p>من أول اختيار لحد يوم الفرحة</p></div></div>
+  <div class="journey-grid">
+   <article class="journey-card"><span class="journey-icon journey-icon-pink">🚘</span><b>اختار عربيتك</b><small>صور ومواصفات واضحة لكل سيارة</small><span class="journey-number">01</span></article>
+   <article class="journey-card"><span class="journey-icon journey-icon-lilac">🗓️</span><b>حدد تفاصيل يومك</b><small>التاريخ والمكان والباقة المناسبة</small><span class="journey-number">02</span></article>
+   <article class="journey-card"><span class="journey-icon journey-icon-gold">🎀</span><b>استمتع بفرحتك</b><small>تنظيم ومتابعة لتجربة أهدى</small><span class="journey-number">03</span></article>
+  </div>
+ </section>
+ <div class="payment-methods-strip wedding-payments">
+   <div class="payment-method-card"><span class="payment-method-icon">↗</span><div><b>إنستا باي</b><small id="instapay-home-status">إيصال التحويل يخضع للمراجعة قبل اعتماد الدفع</small></div></div>
    <div class="payment-method-card"><span class="payment-method-icon">ج.م</span><div><b>كاش</b><small>يظل المبلغ مستحقًا حتى تأكيد الاستلام</small></div></div>
  </div>
  <div class="footer-note">زفّة تعرض السيارات المعتمدة فقط. تأكيد الحجز والدفع لا يتم إلا بعد اكتمال إجراءات التشغيل والمراجعة.</div>`;
@@ -90,7 +129,7 @@ function renderCars(){
  return `${pageHeading('اكتشف زفّة','اختار السيارة المناسبة لمناسبتك','كل سيارة معتمدة، وبسائق، وبسعر واضح قبل تأكيد الحجز.')}
  <div class="filter-row"><button class="filter-chip ${browseFilter==='all'?'active':''}" data-action="filter" data-filter="all">كل السيارات</button><button class="filter-chip ${browseFilter==='fleet'?'active':''}" data-action="filter" data-filter="fleet">أسطول زفّة</button><button class="filter-chip ${browseFilter==='independent'?'active':''}" data-action="filter" data-filter="independent">ملاك موثّقون</button><button class="filter-chip ${browseFilter==='S-Class'?'active':''}" data-action="filter" data-filter="S-Class">فئة ملكية</button></div>
  <div class="section-head"><div><h2>${cars.length} سيارات متاحة للعرض</h2><p>الأقصر والمناطق المحددة حسب تغطية كل سيارة</p></div><span class="owner-type">خدمة بسائق فقط</span></div>
- ${cars.length?`<div class="car-grid">${cars.map(carCard).join('')}</div>`:`<div class="panel empty-state"><div class="empty-icon">◇</div><b>لسه مفيش سيارات معتمدة متاحة</b><p>هنعرض السيارات الحقيقية بعد اعتماد بياناتها وأسعارها وتوافرها.</p><button class="btn btn-outline" data-action="filter" data-filter="all">عرض الكل</button></div>`}
+ ${cars.length?`<div class="car-grid">${cars.map(carCard).join('')}</div>`:`<div class="empty-state wedding-empty cars-empty"><div class="empty-state-photo"><img src="https://images.unsplash.com/photo-1691343327025-4b0cc1dc053f?auto=format&fit=crop&w=900&q=80" alt="زينة زهور لسيارة مناسبة" loading="lazy"><span>🌷</span></div><div class="empty-state-copy"><div class="empty-state-kicker">قريبًا جدًا</div><h3>لسه بنجهّز أول مجموعة سيارات</h3><p>تابعنا قريبًا لمشاهدة السيارات المعتمدة بصورها وأسعارها وتفاصيلها.</p><button class="btn btn-soft" data-action="go" data-view="home">العودة للرئيسية</button></div></div>`}
  <div class="notice">المعروض يُجلب من قاعدة بيانات زفّة. لن يتم تأكيد أي حجز قبل فحص التوافر ومراجعة العربون.</div>`;
 }
 function bookingRow(b,admin=false){
@@ -144,7 +183,11 @@ function go(view){state.view=view;persist();render();window.scrollTo({top:0,beha
 const authClient = createAuthClient("https://ep-tiny-mud-becp4j1y.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth");
 let authMode="signin",authSession=null,currentProfile=null,pendingBookingCarId=null;
 let paymentSettings={methods:{instapay:{enabled:false,recipient:null,displayName:null},cash:{enabled:true}},depositPercent:30};
-async function getAuthToken(){const t=await authClient.getJWTToken?.();return typeof t==="string"&&t.length>20?t:null;}
+async function getAuthToken(){
+ const result=await authClient.token?.();
+ const token=result?.data?.token;
+ return typeof token==="string"&&token.length>20?token:null;
+}
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
 function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();}
 function normalizeCustomerPhone(value){
@@ -164,59 +207,79 @@ function updateAccountButton(){const b=document.querySelector("#account-button")
 function openAuthModal(mode="signin"){
  authMode=mode==="signup"?"signup":"signin";
  const signup=authMode==="signup";
- const signupFields=signup?'<div class="field"><label>الاسم بالكامل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name"></div>':"";
+ const signupFields=signup?'<div class="field"><label>اسمك الجميل</label><input name="name" required minlength="2" maxlength="80" autocomplete="name" placeholder="اكتب اسمك بالكامل"></div>':"";
  const note=pendingBookingCarId
-  ? "سجّل دخولك بالموبايل وكلمة المرور علشان نكمل طلب الحجز. باقي الموقع متاح للتصفح من غير حساب."
-  : "مش محتاج بريد إلكتروني. رقم الموبايل هو اسم الدخول، وتقدر تتصفح زفّة من غير حساب.";
- const body=`<form id="auth-form">${signupFields}
- <div class="field" style="margin-top:10px"><label>رقم الموبايل المصري</label><input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01012345678"></div>
- <div class="field" style="margin-top:10px"><label>كلمة المرور</label><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}"></div>
- <div class="auth-note">${note}</div>
- <button type="button" class="text-link" data-action="auth-mode" data-mode="${signup?"signin":"signup"}">${signup?"لديك حساب؟ تسجيل الدخول":"مستخدم جديد؟ إنشاء حساب"}</button></form>`;
- openModal(signup?"إنشاء حساب زفّة":"تسجيل الدخول",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="auth-submit">${signup?"إنشاء الحساب":"تسجيل الدخول"}</button>`);
+  ? "سجّل دخولك علشان نكمل طلب الحجز. باقي زفّة مفتوح للتصفح من غير حساب."
+  : "اتفرّج على زفّة براحتك. الحساب مطلوب بس لما تقرر تبدأ الحجز.";
+ const body=`<div class="auth-welcome"><span class="auth-welcome-icon">${signup?'🌷':'💗'}</span><div><b>${signup?'أهلاً بيك في زفّة':'نورت زفّة'}</b><small>${signup?'خلّينا نعرفك ونجهّز حسابك':'ادخل لحسابك وكمل رحلتك معانا'}</small></div></div>
+ <form id="auth-form">
+  ${signupFields}
+  <div class="field" style="margin-top:12px"><label>رقم الموبايل المصري</label><input name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01012345678" dir="ltr"></div>
+  <div class="field" style="margin-top:12px"><label>كلمة المرور</label><input name="password" type="password" required minlength="8" autocomplete="${signup?"new-password":"current-password"}" placeholder="اكتب كلمة المرور" dir="ltr"></div>
+  <div class="auth-note"><span>✨</span> ${note}</div>
+  <div id="auth-error" class="auth-message" role="alert" aria-live="polite" hidden></div>
+  <button type="button" class="text-link" data-action="auth-mode" data-mode="${signup?"signin":"signup"}">${signup?"عندك حساب؟ سجّل دخولك":"أول مرة معانا؟ إنشاء حساب جديد"}</button>
+ </form>`;
+ openModal(signup?"إنشاء حساب جديد":"تسجيل الدخول",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button id="auth-submit-button" class="btn btn-primary" data-action="auth-submit">${signup?"إنشاء حسابي":"دخول إلى حسابي"} <span>←</span></button>`);
+ document.querySelectorAll("#auth-form input").forEach(input=>input.addEventListener("input",()=>showAuthError("")));
 }
+function showAuthError(message){
+ const box=document.querySelector("#auth-error");if(!box)return;
+ box.textContent=message||"";box.hidden=!message;
+}
+function friendlyAuthError(error,stage="sign-in"){
+ const status=Number(error?.status||error?.statusCode||error?.response?.status||0);
+ const code=String(error?.code||error?.body?.code||"").toLowerCase();
+ const raw=String(error?.message||"");
+ if(status===404||/http 404/i.test(raw)){
+  if(stage==="token")return "تسجيل الدخول وصل للخدمة، لكن استخراج جلسة الأمان رجع 404. حسابك موجود؛ هنراجع مسار الجلسة.";
+  if(stage==="profile")return "تمت المصادقة، لكن ملف العميل غير متاح على الخادم حاليًا. حسابك لم يُحذف؛ هنراجع ربط الملف.";
+  return "مسار تسجيل الدخول غير متاح على الخدمة. هنراجع الإعدادات، ومش محتاج تنشئ حسابًا جديدًا.";
+ }
+ if(status===401||/bad_credentials|invalid_email_or_password|invalid password/i.test(code+" "+raw))return "رقم الموبايل أو كلمة المرور غير صحيحة. راجع البيانات وحاول تاني.";
+ if(/user already exists|already exists|user_already_exists|email_already_exists/i.test(code+" "+raw))return "رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول بدل إنشاء حساب جديد.";
+ return "ما قدرناش نسجّل دخولك دلوقتي. راجع الاتصال وحاول تاني.";
+}
+
 async function submitAuth(){
  const f=document.querySelector("#auth-form");if(!f?.reportValidity())return;const d=new FormData(f);
  const phone=normalizeCustomerPhone(d.get("phone"));
- if(!phone){toast("اكتب رقم موبايل مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.");return;}
+ if(!phone){showAuthError("اكتب رقم موبايل مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015.");return;}
  const authEmail=internalAuthEmail(phone);
  const password=String(d.get("password")||"");
- const signupDetails=authMode==="signup"?{
-  displayName:String(d.get("name")||"").trim(),
-  phone
- }:null;
+ const signupDetails=authMode==="signup"?{displayName:String(d.get("name")||"").trim(),phone}:null;
+ const submit=document.querySelector("#auth-submit-button");
+ let stage="sign-in";
+ if(submit){submit.disabled=true;submit.textContent="جاري التحقق…";}
+ showAuthError("");
  try{
   const r=authMode==="signup"
    ?await authClient.signUp.email({name:signupDetails.displayName,email:authEmail,password})
    :await authClient.signIn.email({email:authEmail,password});
-  if(r?.error){
-   const code=String(r.error.code||"");
-   if(authMode==="signup"&&/USER_ALREADY_EXISTS|EMAIL_ALREADY_EXISTS|DUPLICATE/.test(code)){
-    throw new Error("رقم الموبايل مسجل بالفعل. اختار تسجيل الدخول.");
-   }
-   throw new Error(r.error.message||code||"AUTH_FAILED");
+  if(r?.error)throw r.error;
+  const authData=r?.data||null;
+  if(authData?.user)authSession={user:authData.user,session:null};
+  stage="token";
+  const jwtToken=await getAuthToken();
+  if(!jwtToken){
+   if(authMode==="signup"){toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");openAuthModal("signin");return;}
+   throw new Error("AUTH_TOKEN_UNAVAILABLE");
   }
-  const session=await authClient.getSession();authSession=session?.data||null;
-  if(!authSession?.user){
-   if(authMode==="signup"){
-    toast("الحساب اتعمل. سجّل الدخول بنفس رقم الموبايل وكلمة المرور.");
-    openAuthModal("signin");
-    return;
-   }
-   throw new Error("تعذر استعادة جلسة الدخول.");
-  }
-  await loadProfile(signupDetails);
+  if(!authSession?.user)authSession={user:{name:signupDetails?.displayName||""},session:null};
+  stage="profile";
+  await loadProfile(signupDetails,jwtToken);
  }catch(e){
-  const message=String(e?.message||"");
-  toast(/already exists|USER_ALREADY_EXISTS|EMAIL_ALREADY_EXISTS/i.test(message)
-    ?"رقم الموبايل مسجل بالفعل. سجل الدخول بدل إنشاء حساب جديد."
-    :message||"تعذر تسجيل الدخول. راجع رقم الموبايل وكلمة المرور.");
+  showAuthError(friendlyAuthError(e,stage));
+ }finally{
+  const button=document.querySelector("#auth-submit-button");
+  if(button){button.disabled=false;button.textContent=authMode==="signup"?"إنشاء حسابي":"دخول إلى حسابي";}
  }
 }
-async function loadProfile(signupDetails=null){
- const token=await getAuthToken();if(!token)throw new Error("تعذر الحصول على جلسة آمنة.");
+
+async function loadProfile(signupDetails=null,tokenOverride=null){
+ const token=tokenOverride||await getAuthToken();if(!token)throw new Error("AUTH_TOKEN_UNAVAILABLE");
  const r=await fetch("/api/v1/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});const j=await r.json();
- if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_LOAD_FAILED");
+ if(!r.ok||j.ok!==true){const error=new Error(j.code||`PROFILE_HTTP_${r.status}`);error.status=r.status;error.code=j.code||"PROFILE_LOAD_FAILED";throw error;}
  if(j.profile){completeAuthentication(j.profile);return;}
  if(!signupDetails){openProfileModal();return;}
  const created=await fetch("/api/v1/profile",{
@@ -224,7 +287,7 @@ async function loadProfile(signupDetails=null){
   body:JSON.stringify(signupDetails)
  });
  const saved=await created.json();
- if(!created.ok||saved.ok!==true)throw new Error(saved.code||"PROFILE_SAVE_FAILED");
+ if(!created.ok||saved.ok!==true){const error=new Error(saved.code||`PROFILE_HTTP_${created.status}`);error.status=created.status;error.code=saved.code||"PROFILE_SAVE_FAILED";throw error;}
  completeAuthentication(saved.profile);
 }
 function completeAuthentication(profile){
@@ -247,7 +310,16 @@ async function submitProfile(){
   const token=await getAuthToken();const r=await fetch("/api/v1/profile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({displayName:d.get("displayName"),phone:d.get("phone")})});const j=await r.json();if(!r.ok||j.ok!==true)throw new Error(j.code||"PROFILE_SAVE_FAILED");completeAuthentication(j.profile);}
  catch(e){toast(e?.message==="PHONE_ALREADY_LINKED"?"رقم الهاتف مرتبط بحساب آخر.":e?.message||"تعذر حفظ البيانات.");}
 }
-async function restoreAuthSession(){try{const r=await authClient.getSession();authSession=r?.data||null;if(!authSession?.user){updateAccountButton();return;}await loadProfile();}catch{authSession=null;currentProfile=null;updateAccountButton();}}
+async function restoreAuthSession(){
+ try{
+  const token=await getAuthToken();
+  if(!token){authSession=null;currentProfile=null;updateAccountButton();return;}
+  authSession={user:{name:""},session:null};
+  await loadProfile(null,token);
+ }catch{
+  authSession=null;currentProfile=null;updateAccountButton();
+ }
+}
 async function signOut(){try{await authClient.signOut();}catch{}authSession=null;currentProfile=null;state.role="customer";state.view="home";render();updateAccountButton();closeModal(true);toast("تم تسجيل الخروج.",true);}
 
 function toast(message,good=false){const root=document.querySelector('#toast-root');const el=document.createElement('div');el.className=`toast ${good?'good':''}`;el.textContent=message;root.append(el);setTimeout(()=>el.remove(),3200);}
@@ -301,6 +373,7 @@ document.addEventListener('click',event=>{
  else if(action==='book')openBooking(id||activeCarId);
  else if(action==='close-modal')closeModal(true);
  else if(action==='backdrop'&&event.target.classList.contains('modal-backdrop'))closeModal(true);
+ else if(action==='occasion'){const value=btn.dataset.value||'زفاف';const picker=document.querySelector('#home-occasion');if(picker)picker.value=value;state.searchOccasion=value;toast('اختارت مناسبتك: '+value,true);}
  else if(action==='search-cars'){state.searchDate=document.querySelector('#home-date')?.value||state.searchDate;state.searchZone=document.querySelector('#home-zone')?.value||state.searchZone;state.searchOccasion=document.querySelector('#home-occasion')?.value||state.searchOccasion;persist();browseFilter='all';go('cars');}
 
  else if(action==='booking-details')bookingDetails(id);

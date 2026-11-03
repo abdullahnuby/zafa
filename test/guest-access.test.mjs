@@ -17,7 +17,7 @@ test("public website shell has no demo mode or customer role switcher", () => {
 });
 
 test("guest visitors can browse and authentication is gated at booking intent", () => {
-  assert.ok(app.includes("تقدر تتصفح زفّة من غير حساب"));
+  assert.ok(app.includes("اتفرّج على زفّة براحتك"));
   assert.ok(app.includes('if(!authSession?.user){pendingBookingCarId=id;openAuthModal("signin");return;}'));
   assert.ok(app.includes("function showBookingUnavailable(id)"));
 });
@@ -39,6 +39,17 @@ test("Egyptian mobile numbers normalize consistently for customer identities", (
   assert.equal(normalizeEgyptianPhone("01512345678"), "+201512345678");
   assert.equal(normalizeEgyptianPhone("01912345678"), null);
   assert.equal(normalizeEgyptianPhone("123"), null);
+});
+
+test("wedding home page uses real image-led occasion cards and friendly authentication feedback", () => {
+  assert.ok(app.includes("hero-photo"));
+  assert.ok(app.includes("occasion-tile"));
+  assert.ok(app.includes("empty-state-photo"));
+  assert.ok(app.includes("showAuthError"));
+  assert.ok(app.includes("friendlyAuthError"));
+  assert.ok(app.includes("status===404"));
+  assert.ok(app.includes("authClient.token?.()"));
+  assert.ok(!app.includes("authClient.getSession()"));
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
