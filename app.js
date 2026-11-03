@@ -158,7 +158,7 @@ function ownerBookings(){return state.bookings.filter(b=>b.ownerId==='owner1');}
 function renderOwnerOverview(){const list=ownerBookings();const pending=list.filter(b=>b.status==='pending_owner');const revenue=list.filter(b=>['confirmed','driver_assigned','ready','in_progress','completed'].includes(b.status)).reduce((s,b)=>s+b.total-b.commission,0);return `${pageHeading('مساحة الشريك','أهلاً بيك في زفّة','إدارة سياراتك وطلبات الحجز والتسويات من مكان واحد.',`<button class="btn btn-primary" data-action="go" data-view="owner-vehicles">+ أضف سيارة</button>`)}
  <div class="stats-grid">${statCard('◇','سياراتك المعتمدة',state.cars.filter(c=>c.ownerId==='owner1'&&c.approval==='approved').length,'سيارات جاهزة لاستقبال الطلبات')}${statCard('▤','طلبات جديدة',pending.length,'تحتاج مراجعتك')}${statCard('◈','مستحقات تقديرية',money(revenue),'قبل التسوية والخصومات')}${statCard('★','متوسط التقييم','4.8','بيانات تقييم تجريبية')}</div>
  <div class="owner-layout"><div class="panel"><h3>طلبات تحتاج قرارك</h3>${pending.length?`<div class="mini-list">${pending.map(b=>`<div class="mini-row"><div><b>${escapeHtml(b.customerName)} · ${escapeHtml(b.packageLabel)}</b><small>${b.date} · ${b.time} · ${money(b.total)}</small></div><button class="btn btn-primary btn-small" data-action="booking-details" data-id="${b.id}">مراجعة الطلب</button></div>`).join('')}</div>`:`<div class="empty-state"><b>مفيش طلبات جديدة</b><p>أي طلب جديد هتلاقيه هنا.</p></div>`}</div><div class="panel"><h3>تذكير مهم</h3><div class="notice">تأكد من تحديث التوافر والأسعار قبل استقبال الحجوزات.</div><div class="mini-row"><div><b>مستندات السيارة</b><small>مراجعة الصلاحية قبل انتهاءها</small></div><span class="status green">سارية تجريبيًا</span></div><div class="mini-row"><div><b>التسوية القادمة</b><small>مستحقات قيد المراجعة</small></div><span class="status orange">معلقة</span></div></div></div>`;}
-function renderOwnerVehicles(){const cars=state.cars.filter(c=>c.ownerId==='owner1');return `${pageHeading('إدارة الأسطول','سياراتي','حدّث بيانات سيارتك ومستنداتها وحالة اعتمادها.',`<button class="btn btn-primary" data-action="add-car">+ إضافة سيارة</button>`)}<div class="panel"><div class="table-wrap"><table><thead><tr><th>السيارة</th><th>رقم اللوحة</th><th>نوع الشراكة</th><th>حالة الاعتماد</th><th>باقة كلاسيك</th><th>إجراء</th></tr></thead><tbody>${cars.map(c=>`<tr><td><b>${escapeHtml(c.brand)} ${escapeHtml(c.model)}</b><br><small>${c.year}</small></td><td>${escapeHtml(c.plate)}</td><td>مالك مستقل</td><td>${c.approval==='approved'?'<span class="status green">معتمدة</span>':c.approval==='pending'?'<span class="status orange">قيد المراجعة</span>':'<span class="status red">مرفوضة</span>'}</td><td>${money(c.packagePrices.classic)}</td><td><button class="btn btn-outline btn-small" data-action="edit-car" data-id="${c.id}">تعديل البيانات</button></td></tr>`).join('')}</tbody></table></div></div><div class="notice">إضافة السيارة هنا تحفظ سجلًا تجريبيًا فقط. رفع الوثائق والتحقق من الملكية والتأمين غير متصلين بعد.</div>`;}
+function renderOwnerVehicles(){const cars=state.cars.filter(c=>c.ownerId==='owner1');return `${pageHeading('إدارة الأسطول','سياراتي','حدّث بيانات سيارتك ومستنداتها وحالة اعتمادها.',`<button class="btn btn-primary" data-action="add-car">+ إضافة إعلان</button>`)}<div class="panel"><div class="table-wrap"><table><thead><tr><th>السيارة</th><th>رقم اللوحة</th><th>نوع الشراكة</th><th>حالة الاعتماد</th><th>باقة كلاسيك</th><th>إجراء</th></tr></thead><tbody>${cars.map(c=>`<tr><td><b>${escapeHtml(c.brand)} ${escapeHtml(c.model)}</b><br><small>${c.year}</small></td><td>${escapeHtml(c.plate)}</td><td>مالك مستقل</td><td>${c.approval==='approved'?'<span class="status green">معتمدة</span>':c.approval==='pending'?'<span class="status orange">قيد المراجعة</span>':'<span class="status red">مرفوضة</span>'}</td><td>${money(c.packagePrices.classic)}</td><td><button class="btn btn-outline btn-small" data-action="edit-car" data-id="${c.id}">تعديل البيانات</button></td></tr>`).join('')}</tbody></table></div></div><div class="notice">إضافة السيارة هنا تحفظ سجلًا تجريبيًا فقط. رفع الوثائق والتحقق من الملكية والتأمين غير متصلين بعد.</div>`;}
 function renderOwnerRequests(){const list=ownerBookings();return `${pageHeading('طلبات العملاء','طلبات الحجز','راجع الطلبات الجديدة، وتأكد من تفاصيل الموعد والتغطية قبل القبول.')}${list.length?`<div class="booking-list">${list.map(b=>bookingRow(b)).join('')}</div>`:`<div class="panel empty-state"><b>مفيش طلبات حتى الآن</b></div>`}`;}
 function renderOwnerCalendar(){const days=Array.from({length:28},(_,i)=>{const n=i+1;const b=ownerBookings().find(x=>Number(x.date.slice(-2))===n);return `<div class="calendar-cell ${b?'booked':''}"><b>${n}</b>${b?'حجز':''}</div>`}).join('');return `${pageHeading('تنظيم جدولك','التوافر والحجوزات','راجع الأيام المشغولة وحدد فترات عدم التوافر.')}
  <div class="panel"><div class="section-head" style="margin:0 0 14px"><h2 style="font-size:14px">نوفمبر 2026 — عرض توضيحي</h2><span class="status green">محجوز</span></div><div class="calendar-grid">${['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'].map(d=>`<div class="calendar-cell" style="min-height:auto;background:transparent"><b>${d}</b></div>`).join('')}${days}</div><div class="notice">التقويم لا يفرض الحظر على قاعدة بيانات حقيقية بعد؛ لازم ربطه بمحرك منع التداخل قبل استقبال أي حجز فعلي.</div><button class="btn btn-outline" data-action="toast" data-message="إعداد فترات عدم التوافر سيكون ضمن تكامل التقويم">إضافة فترة عدم توافر</button></div>`;}
@@ -189,9 +189,7 @@ function renderAdminOverview(){
  <div class="admin-grid">
   <div class="panel"><div class="section-head" style="margin:0 0 12px"><h3>إجراءات سريعة</h3></div>
    <div class="admin-quick-actions">
-    <button class="btn btn-primary" data-action="add-car">+ إضافة سيارة</button>
-    <button class="btn btn-outline" data-action="add-owner">+ إضافة مالك</button>
-    <button class="btn btn-outline" data-action="add-driver">+ إضافة سائق</button>
+    <button class="btn btn-primary" data-action="add-car">+ إضافة إعلان سيارة متكامل</button>
     <button class="btn btn-outline" data-action="go" data-view="admin-schedule">إدارة المواعيد</button>
    </div>
    <div class="mini-list" style="margin-top:14px">
@@ -273,7 +271,7 @@ function renderAdminVehicles(){
  const pending=vehicles.filter(v=>v.approval_status==="pending");
  const approved=vehicles.filter(v=>v.approval_status==="approved");
  const statusLabel={draft:"مسودة",pending:"بانتظار الاعتماد",approved:"منشورة",rejected:"مرفوضة",suspended:"موقوفة"};
- return `${pageHeading("إدارة الأسطول","السيارات والنشر","أضف السيارات والأسعار والصور وجدول العمل. الاعتماد ينشر السيارة فورًا في واجهة العملاء.",'<button class="btn btn-primary" data-action="add-car">+ إضافة سيارة</button>')}
+ return `${pageHeading("إدارة الأسطول","السيارات والنشر","أضف السيارات والأسعار والصور وجدول العمل. الاعتماد ينشر السيارة فورًا في واجهة العملاء.",'<button class="btn btn-primary" data-action="add-car">+ إضافة إعلان</button>')}
  <div class="stats-grid">
   ${statCard("🚘","كل السيارات",vehicles.length,"ملفات مركبات")}
   ${statCard("⌛","تنتظر الاعتماد",pending.length,"تحتاج قرارًا")}
@@ -292,6 +290,7 @@ function renderAdminVehicles(){
       <div class="admin-card-title"><b>${escapeHtml(v.make)} ${escapeHtml(v.model)}</b><span class="status ${status==="approved"?"green":status==="pending"?"orange":status==="rejected"?"red":"gray"}">${statusLabel[status]||status}</span></div>
       <small>موديل ${v.model_year} · لوحة ${escapeHtml(v.plate_number)} · ${v.seats} مقاعد</small>
       <small>المالك: ${escapeHtml(v.owner_name)} · ${ownerStatus==="approved"?"ملف مالك معتمد":"ملف المالك غير معتمد"}</small>
+      <small>السائق: ${escapeHtml(v.default_driver_name||"غير محدد")} · ${v.default_driver_status==="verified"&&v.default_driver_active&&v.default_driver_user_active?"سائق موثق":"بانتظار التحقق"}</small>
       <small>المناطق: ${escapeHtml((v.service_zones||[]).join("، "))}</small>
       <div class="admin-price-chips">${Object.entries(v.package_prices||{}).map(([k,val])=>`<span>${({mini:"ميني",classic:"كلاسيك",wedding:"زفاف",royal:"رويال"}[k]||k)}: ${money(Number(val))}</span>`).join("")}</div>
      </div>
@@ -323,7 +322,7 @@ function renderAdminVehicles(){
 }
 function renderAdminPeople(){
  const owners=adminFleet.owners||[],drivers=adminFleet.drivers||[];
- return `${pageHeading("إدارة الشركاء","الملاك والسائقون","أنشئ حسابات دخول فعلية، وأضف العقود والرخص والبطاقات، ثم اعتمد الملف قبل التشغيل.",'<button class="btn btn-primary" data-action="add-owner">+ إضافة مالك</button> <button class="btn btn-outline" data-action="add-driver">+ إضافة سائق</button>')}
+ return `${pageHeading("إدارة الشركاء","الملاك والسائقون","أنشئ حسابات دخول فعلية، وأضف العقود والرخص والبطاقات، ثم اعتمد الملف قبل التشغيل.",'<button class="btn btn-primary" data-action="add-car">+ إضافة إعلان سيارة متكامل</button>')}
  <div class="stats-grid">
   ${statCard("♙","الملاك",owners.length,"حسابات مرتبطة")}
   ${statCard("✓","ملاك معتمدون",owners.filter(o=>o.onboarding_status==="approved").length,"عقود سارية")}
@@ -335,11 +334,11 @@ function renderAdminPeople(){
   ${owners.length?`<div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>النوع</th><th>السيارات</th><th>العقد</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>${owners.map(o=>{
    const contract=(o.contracts||[])[0];
    return `<tr><td><b>${escapeHtml(o.display_name)}</b><br><small>${escapeHtml(o.legal_name)}</small></td><td dir="ltr">${escapeHtml(o.phone_e164)}</td><td>${({fleet_partner:"أسطول",independent_owner:"مالك مستقل",premium_partner:"شريك مميز"}[o.kind]||o.kind)}</td><td>${Number(o.vehicle_count||0)}</td><td>${contract?`<a href="${escapeHtml(contract.url)}" target="_blank" rel="noopener noreferrer">فتح العقد</a><br><span class="status ${contract.status==="approved"?"green":"orange"}">${contract.status==="approved"?"معتمد":contract.status==="rejected"?"مرفوض":"قيد المراجعة"}</span>${contract.status==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="owner" data-id="${contract.id}" data-decision="approve">اعتماد العقد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="owner" data-id="${contract.id}" data-decision="reject">رفض</button>`:""}`:'<small>لا يوجد عقد</small>'}</td><td><span class="status ${o.onboarding_status==="approved"?"green":o.onboarding_status==="rejected"?"red":"orange"}">${o.onboarding_status==="approved"?"معتمد":o.onboarding_status==="rejected"?"مرفوض":o.onboarding_status==="suspended"?"موقوف":"بانتظار المراجعة"}</span></td><td>${o.onboarding_status==="approved"?`<button class="btn btn-danger btn-small" data-action="person-status" data-kind="owner" data-id="${o.id}" data-status="suspended">إيقاف</button>`:`<button class="btn btn-primary btn-small" data-action="person-status" data-kind="owner" data-id="${o.id}" data-status="approved">اعتماد المالك</button>`} <button class="btn btn-outline btn-small" data-action="add-owner-contract" data-id="${o.id}">إضافة عقد</button></td></tr>`;
-  }).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لم تتم إضافة ملاك</b><p>أنشئ حساب المالك ورقم الهاتف والعقد، ثم اعتمد ملفه.</p><button class="btn btn-primary" data-action="add-owner">إضافة أول مالك</button></div>`}
+  }).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لم تتم إضافة ملاك</b><p>أنشئ حساب المالك ورقم الهاتف والعقد، ثم اعتمد ملفه.</p><button class="btn btn-primary" data-action="add-car">إضافة إعلان سيارة متكامل</button></div>`}
  </div>
  <div class="panel" style="margin-top:14px">
   <div class="section-head" style="margin:0 0 12px"><div><h2>السائقون</h2><p>اعتماد السائق يتطلب رخصة قيادة وبطاقة شخصية ساريتين ومعتمدتين</p></div></div>
-  ${drivers.length?`<div class="table-wrap"><table><thead><tr><th>السائق</th><th>الهاتف</th><th>المستندات</th><th>حالة التحقق</th><th>النشاط</th><th>الإجراء</th></tr></thead><tbody>${drivers.map(d=>`<tr><td><b>${escapeHtml(d.display_name)}</b></td><td dir="ltr">${escapeHtml(d.phone_e164)}</td><td>${(d.documents||[]).map(doc=>`<div class="doc-review-row"><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${doc.documentType==="driving_license"?"رخصة قيادة":doc.documentType==="national_id"?"بطاقة شخصية":escapeHtml(doc.documentType)}</a><span class="status ${doc.reviewStatus==="approved"?"green":doc.reviewStatus==="rejected"?"red":"orange"}">${doc.reviewStatus==="approved"?"معتمد":doc.reviewStatus==="rejected"?"مرفوض":"معلق"}</span>${doc.reviewStatus==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="approve">اعتماد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="reject">رفض</button>`:""}</div>`).join("")||"<small>لم ترفع مستندات</small>"}<button class="text-link" data-action="add-driver-doc" data-id="${d.id}">+ مستند</button></td><td><span class="status ${d.verification_status==="verified"?"green":d.verification_status==="rejected"?"red":"orange"}">${d.verification_status==="verified"?"موثق":d.verification_status==="rejected"?"مرفوض":"بانتظار التحقق"}</span></td><td>${d.active&&d.is_active!==false?'<span class="status green">نشط</span>':'<span class="status gray">موقوف</span>'}</td><td>${d.verification_status==="verified"&&d.active?`<button class="btn btn-danger btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="suspended" data-active="false">إيقاف</button>`:`<button class="btn btn-primary btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="verified" data-active="true">اعتماد السائق</button>`}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لا يوجد سائقون</b><p>أضف السائق وبيانات الدخول ومستنداته.</p><button class="btn btn-primary" data-action="add-driver">إضافة أول سائق</button></div>`}
+  ${drivers.length?`<div class="table-wrap"><table><thead><tr><th>السائق</th><th>الهاتف</th><th>المستندات</th><th>حالة التحقق</th><th>النشاط</th><th>الإجراء</th></tr></thead><tbody>${drivers.map(d=>`<tr><td><b>${escapeHtml(d.display_name)}</b></td><td dir="ltr">${escapeHtml(d.phone_e164)}</td><td>${(d.documents||[]).map(doc=>`<div class="doc-review-row"><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${doc.documentType==="driving_license"?"رخصة قيادة":doc.documentType==="national_id"?"بطاقة شخصية":escapeHtml(doc.documentType)}</a><span class="status ${doc.reviewStatus==="approved"?"green":doc.reviewStatus==="rejected"?"red":"orange"}">${doc.reviewStatus==="approved"?"معتمد":doc.reviewStatus==="rejected"?"مرفوض":"معلق"}</span>${doc.reviewStatus==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="approve">اعتماد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="driver" data-id="${doc.id}" data-decision="reject">رفض</button>`:""}</div>`).join("")||"<small>لم ترفع مستندات</small>"}<button class="text-link" data-action="add-driver-doc" data-id="${d.id}">+ مستند</button></td><td><span class="status ${d.verification_status==="verified"?"green":d.verification_status==="rejected"?"red":"orange"}">${d.verification_status==="verified"?"موثق":d.verification_status==="rejected"?"مرفوض":"بانتظار التحقق"}</span></td><td>${d.active&&d.is_active!==false?'<span class="status green">نشط</span>':'<span class="status gray">موقوف</span>'}</td><td>${d.verification_status==="verified"&&d.active?`<button class="btn btn-danger btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="suspended" data-active="false">إيقاف</button>`:`<button class="btn btn-primary btn-small" data-action="person-status" data-kind="driver" data-id="${d.id}" data-status="verified" data-active="true">اعتماد السائق</button>`}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty-state"><b>لا يوجد سائقون</b><p>أضف السائق وبيانات الدخول ومستنداته.</p><button class="btn btn-primary" data-action="add-car">إضافة إعلان سيارة متكامل</button></div>`}
  </div>`;
 }
 function renderAdminSchedule(){
@@ -385,6 +384,11 @@ function adminErrorMessage(error){
   DRIVER_DOCUMENTS_REQUIRED:"لا يمكن اعتماد السائق قبل مراجعة رخصة القيادة والبطاقة الشخصية.",
   DRIVER_NOT_VERIFIED_OR_INACTIVE:"السائق غير موثق أو غير نشط.",
   VEHICLE_PHOTO_REQUIRED:"أضف صورة واحدة على الأقل للسيارة قبل نشرها.",
+  VEHICLE_DRIVER_REQUIRED:"اربط سائقًا بالإعلان قبل اعتماده للنشر.",
+  INVALID_DRIVER_ID:"ملف السائق المحدد غير صحيح.",
+  PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED:"تعذر الاتصال بمخزن الصور من المتصفح. قد تكون إعدادات السماح بالرفع أو الشبكة هي السبب؛ لم نعتبر الصور محفوظة.",
+  VEHICLE_PHOTO_CORS_CONFIGURATION_FAILED:"تعذر تهيئة الاتصال الآمن بمخزن الصور. راجع إعدادات مخزن الصور ثم أعد المحاولة.",
+  PHOTO_UPLOAD_FAILED:"رفض مخزن الصور استقبال أحد الملفات. جرّب صورة بصيغة JPG أو PNG أو WEBP وبحجم أقل من 5 ميجابايت.",
   INVALID_PHOTO_COUNT:"اختر من صورة واحدة إلى 3 صور فقط.",
   INVALID_VEHICLE_PHOTO_FILE:"الصور المسموحة JPG أو PNG أو WEBP، وبحد أقصى 5 ميجابايت للصورة.",
   VEHICLE_PHOTO_LIMIT_REACHED:"وصلت السيارة إلى الحد الأقصى وهو 3 صور.",
@@ -645,44 +649,100 @@ async function assignDriverToBooking(bookingItemId){
  }catch(error){toast(adminErrorMessage(error));}
 }
 function addCar(){
- const ownerOptions=(adminFleet.owners||[]).map(o=>`<option value="${o.id}">${escapeHtml(o.display_name)} — ${escapeHtml(o.legal_name)}</option>`).join("");
  const body=`<form id="add-car-form">
-  <div class="admin-form-section"><b>بيانات السيارة والمالك</b><div class="modal-grid">
-   <div class="field"><label>المالك</label><select name="ownerId" required><option value="">اختر المالك</option><option value="__company__">أسطول زفّة</option>${ownerOptions}</select></div>
-   <div class="field"><label>الماركة</label><input name="make" required maxlength="80" placeholder="Mercedes-Benz"></div>
-   <div class="field"><label>الموديل / الفئة</label><input name="model" required maxlength="100" placeholder="E-Class"></div>
-   <div class="field"><label>سنة الصنع</label><input name="modelYear" type="number" min="1990" max="2100" required value="2022"></div>
-   <div class="field"><label>رقم اللوحة</label><input name="plateNumber" required maxlength="40" placeholder="أ ق ص ١٢٣٤"></div>
-   <div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option><option>8</option></select></div>
-   <div class="field"><label>ناقل الحركة</label><select name="transmission"><option>أوتوماتيك</option><option>مانيوال</option></select></div>
-   <div class="field"><label>مناطق الخدمة</label><input name="zones" required value="وسط الأقصر، الكرنك، العوامية" placeholder="افصل بين المناطق بفاصلة"></div>
-  </div></div>
-  <div class="admin-form-section"><b>صور السيارة</b>
-   <div class="field field-wide"><label>اختر من صورة إلى 3 صور — JPG أو PNG أو WEBP</label>
+  <input type="hidden" name="ownerAuthUserId">
+  <input type="hidden" name="ownerEntityId">
+  <input type="hidden" name="ownerPassword">
+  <input type="hidden" name="ownerContractDocumentId">
+  <input type="hidden" name="driverAuthUserId">
+  <input type="hidden" name="driverEntityId">
+  <input type="hidden" name="driverPassword">
+  <input type="hidden" name="driverLicenseDocumentId">
+  <input type="hidden" name="driverNationalIdDocumentId">
+  <input type="hidden" name="vehicleId">
+  <input type="hidden" name="photosUploaded" value="false">
+
+  <div class="admin-form-section">
+   <b>1. بيانات صاحب الإعلان / المالك</b>
+   <div class="modal-grid">
+    <div class="field"><label>اسم المالك</label><input name="ownerName" required minlength="2" maxlength="80" placeholder="الاسم بالكامل"></div>
+    <div class="field"><label>رقم هاتف المالك</label><input name="ownerPhone" required type="tel" inputmode="tel" placeholder="01012345678" dir="ltr"></div>
+    <div class="field"><label>الاسم القانوني / اسم الشركة</label><input name="ownerLegalName" required minlength="2" maxlength="150"></div>
+    <div class="field"><label>نوع الشراكة</label><select name="ownerKind"><option value="independent_owner">مالك مستقل</option><option value="fleet_partner">شريك أسطول</option><option value="premium_partner">شريك مميز</option></select></div>
+    <div class="field field-wide"><label>رابط عقد المالك (اختياري الآن)</label><input name="ownerContractUrl" type="url" placeholder="رابط HTTPS لنسخة العقد الموقّع"></div>
+    <div class="field"><label>نسخة العقد</label><input name="ownerContractVersion" value="ZAFFA-OWNER-1"></div>
+    <div class="field"><label>بداية العقد</label><input name="ownerContractValidFrom" type="date"></div>
+    <div class="field"><label>نهاية العقد</label><input name="ownerContractValidTo" type="date"></div>
+   </div>
+  </div>
+
+  <div class="admin-form-section">
+   <b>2. بيانات السائق المرتبط بالإعلان</b>
+   <div class="modal-grid">
+    <div class="field"><label>اسم السائق</label><input name="driverName" required minlength="2" maxlength="80" placeholder="اسم السائق بالكامل"></div>
+    <div class="field"><label>رقم هاتف السائق</label><input name="driverPhone" required type="tel" inputmode="tel" placeholder="01012345678" dir="ltr"></div>
+    <div class="field field-wide"><label>رابط رخصة القيادة (اختياري الآن)</label><input name="driverLicenseUrl" type="url" placeholder="رابط HTTPS لصورة أو ملف الرخصة"></div>
+    <div class="field"><label>انتهاء رخصة القيادة</label><input name="driverLicenseExpiry" type="date"></div>
+    <div class="field field-wide"><label>رابط البطاقة الشخصية (اختياري الآن)</label><input name="driverNationalIdUrl" type="url" placeholder="رابط HTTPS لصورة أو ملف البطاقة"></div>
+    <div class="field"><label>انتهاء البطاقة (إن وجد)</label><input name="driverNationalIdExpiry" type="date"></div>
+   </div>
+   <div class="notice warning">لو المالك هو السائق نفسه، اكتب نفس رقم الهاتف في الحقلين وسيتم ربط الدورين بحساب واحد.</div>
+  </div>
+
+  <div class="admin-form-section">
+   <b>3. بيانات السيارة — الإعلان</b>
+   <div class="modal-grid">
+    <div class="field"><label>الماركة</label><input name="make" required maxlength="80" placeholder="Mercedes-Benz"></div>
+    <div class="field"><label>الموديل / الفئة</label><input name="model" required maxlength="100" placeholder="E-Class"></div>
+    <div class="field"><label>سنة الصنع</label><input name="modelYear" type="number" min="1990" max="2100" required value="2022"></div>
+    <div class="field"><label>رقم اللوحة</label><input name="plateNumber" required maxlength="40" placeholder="أ ق ص ١٢٣٤"></div>
+    <div class="field"><label>عدد المقاعد</label><select name="seats"><option>4</option><option>5</option><option>7</option><option>8</option></select></div>
+    <div class="field"><label>ناقل الحركة</label><select name="transmission"><option>أوتوماتيك</option><option>مانيوال</option></select></div>
+    <div class="field field-wide"><label>مناطق الخدمة</label><input name="zones" required value="وسط الأقصر، الكرنك، العوامية" placeholder="افصل بين المناطق بفاصلة"></div>
+   </div>
+  </div>
+
+  <div class="admin-form-section">
+   <b>4. صور السيارة</b>
+   <div class="field field-wide">
+    <label>ارفع من صورة إلى 3 صور للسيارة</label>
     <input name="photos" id="vehicle-photo-input" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-max-photos="3">
-    <small class="photo-upload-hint">الحد الأقصى 5 ميجابايت لكل صورة. الصورة الأولى ستكون الصورة الرئيسية ويمكن تغييرها لاحقًا.</small>
+    <small class="photo-upload-hint">JPG أو PNG أو WEBP — حتى 5 ميجابايت للصورة. ستظهر معاينة الصور هنا قبل الحفظ.</small>
     <div id="vehicle-photo-preview" class="vehicle-photo-preview"></div>
    </div>
   </div>
-  <div class="admin-form-section"><b>أسعار الباقات بالجنيه</b><div class="modal-grid">
-   <div class="field"><label>ميني</label><input name="mini" type="number" min="0" step="1" value="1500"></div>
-   <div class="field"><label>كلاسيك — مطلوب</label><input name="classic" type="number" min="1" step="1" required value="2100"></div>
-   <div class="field"><label>زفاف</label><input name="wedding" type="number" min="0" step="1" value="3200"></div>
-   <div class="field"><label>رويال</label><input name="royal" type="number" min="0" step="1" value="4200"></div>
-  </div></div>
-  <div class="admin-form-section"><b>مواعيد الإتاحة الأسبوعية — توقيت القاهرة</b>
-   <div class="weekday-picker">${["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"].map((day,i)=>`<label><input type="checkbox" name="weekdays" value="${i}" checked><span>${day}</span></label>`).join("")}</div>
-   <div class="modal-grid"><div class="field"><label>من الساعة</label><input name="startTime" type="time" value="08:00" required></div><div class="field"><label>إلى الساعة</label><input name="endTime" type="time" value="23:00" required></div></div>
+
+  <div class="admin-form-section">
+   <b>5. أسعار الباقات بالجنيه</b>
+   <div class="modal-grid">
+    <div class="field"><label>ميني</label><input name="mini" type="number" min="0" step="1" value="1500"></div>
+    <div class="field"><label>كلاسيك — مطلوب</label><input name="classic" type="number" min="1" step="1" required value="2100"></div>
+    <div class="field"><label>زفاف</label><input name="wedding" type="number" min="0" step="1" value="3200"></div>
+    <div class="field"><label>رويال</label><input name="royal" type="number" min="0" step="1" value="4200"></div>
+   </div>
   </div>
-  <div class="admin-form-section"><b>مستندات السيارة (روابط HTTPS)</b><div class="modal-grid">
-   <div class="field"><label>رابط الترخيص</label><input name="registrationUrl" type="url" placeholder="رابط ملف الترخيص"></div>
-   <div class="field"><label>انتهاء الترخيص</label><input name="registrationExpiry" type="date"></div>
-   <div class="field"><label>رابط التأمين</label><input name="insuranceUrl" type="url" placeholder="رابط وثيقة التأمين"></div>
-   <div class="field"><label>انتهاء التأمين</label><input name="insuranceExpiry" type="date"></div>
-  </div></div>
-  <div class="notice warning">السيارة تُحفظ في انتظار المراجعة، ولن تظهر للعملاء قبل اكتمال اعتماد المالك والمستندات والصور.</div>
+
+  <div class="admin-form-section">
+   <b>6. مواعيد إتاحة السيارة — توقيت القاهرة</b>
+   <div class="weekday-picker">${["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"].map((day,i)=>`<label><input type="checkbox" name="weekdays" value="${i}" checked><span>${day}</span></label>`).join("")}</div>
+   <div class="modal-grid">
+    <div class="field"><label>من الساعة</label><input name="startTime" type="time" value="08:00" required></div>
+    <div class="field"><label>إلى الساعة</label><input name="endTime" type="time" value="23:00" required></div>
+   </div>
+  </div>
+
+  <div class="admin-form-section">
+   <b>7. مستندات السيارة (اختياري الآن)</b>
+   <div class="modal-grid">
+    <div class="field"><label>رابط الترخيص</label><input name="registrationUrl" type="url" placeholder="رابط HTTPS لملف الترخيص"></div>
+    <div class="field"><label>انتهاء الترخيص</label><input name="registrationExpiry" type="date"></div>
+    <div class="field"><label>رابط التأمين</label><input name="insuranceUrl" type="url" placeholder="رابط HTTPS لوثيقة التأمين"></div>
+    <div class="field"><label>انتهاء التأمين</label><input name="insuranceExpiry" type="date"></div>
+   </div>
+  </div>
+  <div id="listing-save-progress" class="notice warning">سيتم إنشاء أو ربط حساب المالك والسائق، ثم حفظ إعلان السيارة ورفع الصور من نفس النموذج. يمكنك استكمال الحفظ دون تكرار السجلات إذا انقطع الاتصال.</div>
  </form>`;
- openModal("إضافة سيارة جديدة",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">حفظ السيارة</button>`);
+ openModal("إضافة إعلان سيارة متكامل",body,`<button class="btn btn-outline" data-action="close-modal">إلغاء</button><button class="btn btn-primary" data-action="save-car">إنشاء الإعلان وحفظ الصور</button>`);
 }
 function validateVehiclePhotoFiles(files,minCount=1,maxCount=3){
  if(files.length<minCount||files.length>maxCount){
@@ -727,13 +787,17 @@ async function uploadVehiclePhotos(vehicleId,files){
  try{
   for(let i=0;i<uploads.length;i++){
    const item=uploads[i],file=files[i];
-   const response=await fetch(item.uploadUrl,{
-    method:"PUT",
-    mode:"cors",
-    headers:{"Content-Type":item.contentType},
-    body:file,
-    cache:"no-store"
-   });
+   let response;
+   try {
+    response=await fetch(item.uploadUrl,{
+     method:"PUT",
+     headers:{"Content-Type":item.contentType},
+     body:file,
+     cache:"no-store"
+    });
+   } catch (cause) {
+    throw Object.assign(new Error("PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED"),{cause});
+   }
    if(!response.ok)throw new Error("PHOTO_UPLOAD_FAILED");
   }
   return await adminApiRequest("/api/v1/admin/vehicle-photos","POST",{
@@ -744,6 +808,173 @@ async function uploadVehiclePhotos(vehicleId,files){
    action:"cancel",vehicleId,mediaIds
   }).catch(()=>{});
   throw error;
+ }
+}
+
+async function ensureListingPerson(form,kind,values){
+ const prefix=kind==="owner"?"owner":"driver";
+ const entityField=form.elements[`${prefix}EntityId`];
+ const authField=form.elements[`${prefix}AuthUserId`];
+ const passwordField=form.elements[`${prefix}Password`];
+ const phone=normalizeCustomerPhone(values.phone);
+ if(!phone)throw new Error("INVALID_EGYPTIAN_PHONE");
+ let entityId=String(entityField.value||"");
+ let authUserId=String(authField.value||"");
+ let password=String(passwordField.value||"");
+ const candidates=kind==="owner"?(adminFleet.owners||[]):(adminFleet.drivers||[]);
+ const existing=candidates.find(item=>normalizeCustomerPhone(item.phone_e164)===phone);
+ if(!entityId&&existing){
+  entityId=existing.id;
+  authUserId=existing.auth_user_id||"";
+  entityField.value=entityId;
+  if(authUserId)authField.value=authUserId;
+ }
+ if(!authUserId){
+  const counterpart=(kind==="owner"?(adminFleet.drivers||[]):(adminFleet.owners||[]))
+   .find(item=>normalizeCustomerPhone(item.phone_e164)===phone&&item.auth_user_id);
+  if(counterpart)authUserId=counterpart.auth_user_id;
+ }
+ if(!authUserId&&kind==="driver"&&
+    normalizeCustomerPhone(form.elements.ownerPhone.value)===phone){
+  authUserId=String(form.elements.ownerAuthUserId.value||"");
+  if(!password)password=String(form.elements.ownerPassword.value||"");
+ }
+ if(!entityId){
+  if(!authUserId){
+   password=crypto.randomUUID().replace(/-/g,"").slice(0,14);
+   const authUser=await createAuthPerson(values.displayName,phone,password);
+   authUserId=authUser.id;
+   passwordField.value=password;
+   authField.value=authUserId;
+  }
+  const payload={
+   kind,authUserId,phone,displayName:values.displayName
+  };
+  if(kind==="owner"){
+   payload.legalName=values.legalName;
+   payload.ownerKind=values.ownerKind;
+  }
+  const created=await adminApiRequest("/api/v1/admin/people","POST",payload);
+  entityId=created.person.id;
+  entityField.value=entityId;
+  authField.value=authUserId;
+ }
+ return {
+  id:entityId,authUserId,phone,displayName:values.displayName,
+  password,created:Boolean(password),kind
+ };
+}
+
+async function ensureListingDocument(form,fieldName,payload){
+ const url=String(payload.url||"").trim();
+ if(!url||form.elements[fieldName].value)return;
+ const result=await adminApiRequest("/api/v1/admin/documents","POST",payload);
+ form.elements[fieldName].value=result.document.id;
+}
+
+function showListingConfirmation(vehicle,people){
+ const unique=new Map();
+ for(const person of people){
+  if(!person?.phone)continue;
+  const current=unique.get(person.phone);
+  if(!current)unique.set(person.phone,{...person,roles:[person.kind]});
+  else{
+   if(!current.roles.includes(person.kind))current.roles.push(person.kind);
+   if(!current.password&&person.password)current.password=person.password;
+  }
+ }
+ const accounts=[...unique.values()];
+ const cards=accounts.map(person=>`<div class="profile-card">
+  <div><b>${escapeHtml(person.displayName)}</b><small>${person.roles.includes("owner")&&person.roles.includes("driver")?"مالك وسائق":person.kind==="owner"?"المالك":"السائق"} · <span dir="ltr">${escapeHtml(person.phone)}</span></small></div>
+  ${person.password?`<div class="field"><label>كلمة المرور المؤقتة</label><input readonly dir="ltr" value="${escapeHtml(person.password)}"><small>احتفظ بها وسلّمها لصاحب الحساب بشكل آمن.</small></div>`:'<small>تم ربط الدور بحساب موجود مسبقًا.</small>'}
+ </div>`).join("");
+ const body=`<div class="notice good">تم حفظ إعلان ${escapeHtml(vehicle)} ورفع صوره. الإعلان والملفات المرتبطة به أصبحوا في قائمة مراجعة الإدارة.</div>
+  ${cards||'<p>تم استخدام الحسابات المسجلة مسبقًا دون إنشاء كلمات مرور جديدة.</p>'}
+  <div class="notice warning">لن يظهر الإعلان للعملاء إلا بعد اعتماد المالك وعقده، والتحقق من السائق ومستنداته، واعتماد ترخيص السيارة وتأمينها وصورها.</div>`;
+ openModal("تم إنشاء إعلان السيارة",body,`<button class="btn btn-primary" data-action="close-modal">تم</button>`);
+}
+
+async function saveCar(){
+ const f=document.querySelector("#add-car-form");if(!f?.reportValidity())return;
+ const d=new FormData(f);
+ const alreadyUploaded=String(d.get("photosUploaded"))==="true";
+ const photos=d.getAll("photos").filter(file=>file&&file.size>0);
+ if(!alreadyUploaded&&!validateVehiclePhotoFiles(photos,1,3))return;
+ const schedule=[...f.querySelectorAll('input[name="weekdays"]:checked')].map(el=>({weekday:Number(el.value),startTime:d.get("startTime"),endTime:d.get("endTime")}));
+ if(!schedule.length)return toast("اختر يومًا واحدًا على الأقل للإتاحة");
+ if(d.get("startTime")>=d.get("endTime"))return toast("وقت البداية يجب أن يسبق وقت النهاية");
+ const progress=document.querySelector("#listing-save-progress");
+ const saveButton=document.querySelector('[data-action="save-car"]');
+ const setProgress=(message,success=false)=>{
+  if(progress){progress.className=success?"notice good":"notice warning";progress.textContent=message;}
+ };
+ if(saveButton){saveButton.disabled=true;saveButton.textContent="جاري حفظ الإعلان...";}
+ try{
+  setProgress("1/4 — إنشاء أو ربط حساب المالك...");
+  const owner=await ensureListingPerson(f,"owner",{
+   displayName:String(d.get("ownerName")||"").trim(),
+   phone:d.get("ownerPhone"),
+   legalName:String(d.get("ownerLegalName")||"").trim(),
+   ownerKind:d.get("ownerKind")
+  });
+  await ensureListingDocument(f,"ownerContractDocumentId",{
+   entityType:"owner",entityId:owner.id,documentType:"contract",url:d.get("ownerContractUrl"),
+   contractVersion:d.get("ownerContractVersion")||"ZAFFA-OWNER-1",
+   validFrom:d.get("ownerContractValidFrom")||null,validTo:d.get("ownerContractValidTo")||null
+  });
+
+  setProgress("2/4 — إنشاء أو ربط حساب السائق...");
+  const driver=await ensureListingPerson(f,"driver",{
+   displayName:String(d.get("driverName")||"").trim(),
+   phone:d.get("driverPhone")
+  });
+  await ensureListingDocument(f,"driverLicenseDocumentId",{
+   entityType:"driver",entityId:driver.id,documentType:"driving_license",
+   url:d.get("driverLicenseUrl"),expiresOn:d.get("driverLicenseExpiry")||null
+  });
+  await ensureListingDocument(f,"driverNationalIdDocumentId",{
+   entityType:"driver",entityId:driver.id,documentType:"national_id",
+   url:d.get("driverNationalIdUrl"),expiresOn:d.get("driverNationalIdExpiry")||null
+  });
+
+  let vehicleId=String(f.elements.vehicleId.value||"");
+  if(!vehicleId){
+   setProgress("3/4 — حفظ السيارة والأسعار ومواعيد العمل...");
+   const documents=[];
+   if(d.get("registrationUrl"))documents.push({documentType:"vehicle_license",url:d.get("registrationUrl"),expiresOn:d.get("registrationExpiry")||null});
+   if(d.get("insuranceUrl"))documents.push({documentType:"insurance",url:d.get("insuranceUrl"),expiresOn:d.get("insuranceExpiry")||null});
+   const result=await adminApiRequest("/api/v1/admin/vehicles","POST",{
+    ownerId:owner.id,driverId:driver.id,
+    make:d.get("make"),model:d.get("model"),modelYear:Number(d.get("modelYear")),
+    plateNumber:d.get("plateNumber"),seats:Number(d.get("seats")),transmission:d.get("transmission"),
+    serviceZones:String(d.get("zones")||"").split(/[،,]/).map(x=>x.trim()).filter(Boolean),
+    prices:{mini:d.get("mini"),classic:d.get("classic"),wedding:d.get("wedding"),royal:d.get("royal")},
+    schedule,documents,submitForReview:true
+   });
+   vehicleId=result.vehicle.id;
+   f.elements.vehicleId.value=vehicleId;
+  }
+
+  if(!alreadyUploaded){
+   setProgress("4/4 — رفع صور السيارة والتحقق منها...");
+   await uploadVehiclePhotos(vehicleId,photos);
+   f.elements.photosUploaded.value="true";
+  }
+
+  const vehicleName=`${d.get("make")} ${d.get("model")}`;
+  f.elements.ownerPassword.value="";
+  f.elements.driverPassword.value="";
+  closeModal();await loadAdminFleet();await refreshVehicleCatalog();go("admin-vehicles");
+  showListingConfirmation(vehicleName,[owner,driver]);
+ }catch(error){
+  const code=String(error?.code||error?.message||"");
+  const photoFailure=["PHOTO_UPLOAD_NETWORK_OR_CORS_FAILED","PHOTO_UPLOAD_FAILED","VEHICLE_PHOTO_CORS_CONFIGURATION_FAILED"].includes(code);
+  setProgress(photoFailure
+   ?"تعذر إكمال رفع الصور. بيانات المالك والسائق والسيارة محفوظة داخل النموذج؛ أصلح الاتصال ثم اضغط «استكمال حفظ الإعلان» دون إنشاء سجلات مكررة."
+   :"لم تكتمل العملية. احتفظ بالنموذج كما هو واضغط «استكمال حفظ الإعلان» بعد تصحيح البيانات أو الاتصال. لن يعاد إنشاء السجلات التي حُفظت بالفعل.");
+  toast(adminErrorMessage(error));
+ }finally{
+  if(saveButton){saveButton.disabled=false;saveButton.textContent="استكمال حفظ الإعلان";}
  }
 }
 function openVehiclePhotoManager(vehicleId){

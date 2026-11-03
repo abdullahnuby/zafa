@@ -41,3 +41,8 @@ The frontend previously sent Better Auth's opaque `session.token` value as a Bea
 
 - `.github/workflows/quality.yml` performs JavaScript syntax checks and `npm test` on pushes to `main`.
 - After each source change, inspect the actual GitHub Actions result and Vercel production deployment. A Git push alone is not a passing test or proof of deployment.
+
+
+## Unified vehicle advertisement workflow (2026-11-03)
+
+The admin entry point is a single vehicle-ad form. It captures and creates/reuses owner and driver accounts, links the selected default driver to the vehicle, and saves the car details, prices, availability, documents and up to three photos. Admin review remains separate from creation: owner contract, driver identity/licence, vehicle licence/insurance, and vehicle photos must be reviewed before the advertisement can be published. The form is resumable after partial failure and preserves generated IDs to avoid duplicate records.

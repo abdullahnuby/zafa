@@ -97,7 +97,7 @@ test("brand identity is consistent and infrastructure status is not exposed in t
 });
 
 test("PWA service worker invalidates old shell and never caches API data", () => {
-  assert.ok(worker.includes("zaffa-shell-v5"));
+  assert.ok(worker.includes("zaffa-shell-v6"));
   assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
   assert.ok(worker.includes('url.pathname.startsWith("/api/")'));
   assert.ok(worker.includes('cache: "no-store"'));

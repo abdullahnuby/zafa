@@ -1,3 +1,17 @@
+
+## Single vehicle advertisement workflow — 2026-11-03
+
+- Replaced separate add-owner, add-driver and add-vehicle entry points with one admin action: **إضافة إعلان سيارة متكامل**.
+- The single form captures owner identity/contact and legal name, driver identity/contact, car details, 1–3 photos, package prices, weekly availability, and optional document links.
+- The form automatically reuses an existing owner/driver account when the supplied phone number already matches a registered partner. If the owner is also the driver, entering the same phone reuses one Auth identity with both roles.
+- New owner/driver accounts are created inline. Temporary credentials are shown once after a successful submission. Profile, document, vehicle and image steps retain their saved IDs in the open form so retry does not create duplicate profiles or vehicles.
+- Each new advertisement stores `vehicles.default_driver_id` to retain its default chauffeur. Publishing now requires that chauffeur to have verified identity documents and an active account.
+- Production photo upload was still empty before this correction. The direct browser PUT flow now configures Neon S3 bucket CORS (`PUT`, `GET`, `HEAD`) for the production app origin before issuing an upload URL; browser/network upload errors remain visible and the form stays open for retry.
+- Service-worker cache bumped to `zaffa-shell-v6` so installed PWAs refresh the unified form.
+- Migration `0005_vehicle_default_driver` adds the nullable default-driver link without modifying existing vehicle records.
+- **Deployment note:** this source correction must not be described as live until the Vercel production deployment points to the resulting main commit and an actual browser upload appears in `vehicle-photos`.
+
+
 ## Vehicle photo management — 2026-11-03
 
 - Admin can upload 1–3 car photos directly from the device, preview before saving, append photos later up to the same three-photo total, choose the primary photo, and delete non-final photos.

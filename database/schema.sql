@@ -45,6 +45,7 @@ CREATE TABLE drivers (
 CREATE TABLE vehicles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id uuid NOT NULL REFERENCES owners(id),
+  default_driver_id uuid REFERENCES drivers(id),
   make text NOT NULL,
   model text NOT NULL,
   model_year int NOT NULL CHECK (model_year BETWEEN 1990 AND 2100),
