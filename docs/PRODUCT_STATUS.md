@@ -28,15 +28,16 @@ Updated: 2026-11-03
 ## Customer access
 - The public catalog and marketing pages are guest-accessible; account creation is not required to browse.
 - Customer sign-in is requested only after the customer chooses to start a booking.
-- Customer registration uses one form for name, mobile number, email and password. Existing customers sign in with email and password.
-- Phone OTP is not implemented; the mobile number is a contact field, not an SMS verification claim.
+- Customer registration and sign-in use name (registration only), Egyptian mobile number and password; no customer-facing email field is required.
+- Managed Neon Auth currently receives a deterministic non-deliverable internal alias derived from the normalized phone number because its managed client supports email/password, not phone-first signup. The alias is hidden from the customer and is not used for email delivery.
+- Phone ownership is not verified by SMS yet. Do not treat the stored phone as verified; phone OTP and password recovery by SMS require an SMS provider/webhook.
 
 ## Launch boundary — not accepting real reservations yet
 - The public interface is a pre-launch/soft-launch experience. It must not imply that paid bookings are currently available.
 - Production currently has no approved vehicles, real prices, owner inventory or completed bookings.
 - Transactional quote creation, booking holds/expiry, overlap-safe live availability, and owner responses still need implementation and end-to-end tests.
-- The first operating admin account still needs promotion to the admin role.
-- Email/password login is configured. Phone OTP needs an SMS provider and webhook.
+- The first operating admin account still needs promotion to the admin role after the owner's phone-based account is created.
+- Phone/password UI is backed by Managed Auth using an internal alias. Phone OTP and SMS password recovery need an SMS provider and webhook.
 - Cancellation/refund policy, owner/driver onboarding, notifications, and legal/operating procedures remain launch gates.
 - Payment receipt upload is evidence for manual review only; it does not independently mark a payment as captured.
 
