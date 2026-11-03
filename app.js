@@ -28,6 +28,8 @@ let browseFilter = 'all';
 let bookingDraft = null;
 let adminFleet = { owners: [], drivers: [], vehicles: [], availabilityRules: [], availabilityBlocks: [], packages: [] };
 let adminFleetLoading = false;
+let adminBookings = [];
+let adminBookingsLoading = false;
 
 const roleConfig = {
   customer: {label:'عميل',default:'home',nav:[['home','الرئيسية','🏡'],['cars','السيارات','🚘'],['bookings','حجوزاتي','🗓️'],['favorites','المفضلة','💗'],['account','حسابي','👤']]},
@@ -208,8 +210,63 @@ function renderAdminOverview(){
  </div>
  <div class="notice">كل إضافة أو اعتماد أو تعديل في هذه اللوحة يُحفظ في Neon ويُسجل في سجل التدقيق. تصفح العملاء يعرض السيارات المعتمدة فقط.</div>`;
 }
-function renderAdminBookings(){const list=allAdminBookings();return `${pageHeading('التحكم في الحجوزات','إدارة الحجوزات','راجع الحالة، التعيين، ومتابعة تنفيذ الخدمة.')}
- <div class="panel"><div class="table-wrap"><table><thead><tr><th>رقم</th><th>العميل</th><th>السيارة</th><th>التاريخ</th><th>المالك</th><th>الحالة</th><th>القيمة</th><th></th></tr></thead><tbody>${list.map(b=>{const c=carById(b.carId)||{};return `<tr><td><b>${b.id}</b></td><td>${escapeHtml(b.customerName)}</td><td>${escapeHtml(c.brand||'')} ${escapeHtml(c.model||'')}</td><td>${b.date} · ${b.time}</td><td>${b.ownerId==='fleet1'?'أسطول زفّة':'مالك مستقل'}</td><td>${statusInfo(b.status)}</td><td>${money(b.total)}</td><td><button class="btn btn-outline btn-small" data-action="booking-details" data-id="${b.id}">فتح</button></td></tr>`}).join('')}</tbody></table></div></div>`;}
+function renderAdminBookings(){
+ const bookings=adminBookings||[];
+ const availableDrivers=(adminFleet.drivers||[]).filter(d=>d.verification_status==="verified"&&d.active&&d.is_active!==false);
+ return `${pageHeading("تشغيل الحجوزات","الحجوزات وإسناد السائقين","سجل الحجوزات الفعلي من Neon. لا يظهر السائق ضمن خيارات الإسناد إلا بعد اعتماد مستنداته وتفعيل حسابه.")}
+ <div class="stats-grid">
+  ${statCard("▤","إجمالي الحجوزات",bookings.length,"سجلات فعلية")}
+  ${statCard("⌛","بانتظار المالك",bookings.filter(b=>b.status==="pending_owner").length,"تحتاج قرار")}
+  ${statCard("🚘","تحتاج سائقًا",bookings.reduce((n,b)=>n+(b.items||[]).filter(i=>!i.driverId).length,0),"عناصر الحجز غير المسندة")}
+  ${statCard("✓","مكتملة",bookings.filter(b=>b.status==="completed").length,"من سجل الحجوزات")}
+ </div>
+ <div class="panel">
+  <div class="section-head" style="margin:0 0 12px"><div><h2>سجل الحجوزات</h2><p>تظهر هنا الحجوزات المخزنة فعليًا، وليس بيانات العرض التجريبية.</p></div><button class="btn btn-outline btn-small" data-action="reload-bookings">تحديث</button></div>
+  ${adminBookingsLoading?'<div class="empty-state">جاري تحميل الحجوزات…</div>':bookings.length? `<div class="admin-booking-list">${bookings.map(b=>{
+   const total=Number(b.quote_total_minor||0)/100;
+   const items=Array.isArray(b.items)?b.items:[];
+   const paymentLabel=b.payment_method==="cash"?"نقدي":b.payment_method==="online_deposit"?"عربون إلكتروني":"دفع إلكتروني";
+   return `<article class="admin-booking-card">
+    <div class="admin-booking-head">
+     <div><b>${escapeHtml(b.booking_code)}</b><small>${escapeHtml(b.customer_name)} · <span dir="ltr">${escapeHtml(b.customer_phone)}</span></small></div>
+     ${statusInfo(b.status)}
+    </div>
+    <div class="admin-booking-meta">
+     <span>${escapeHtml(b.occasion||"مناسبة")}</span>
+     <span>${new Date(b.scheduled_start).toLocaleString("ar-EG")}</span>
+     <span>${paymentLabel}</span>
+     <strong>${money(total)}</strong>
+    </div>
+    <div class="admin-booking-addresses">
+     <div><small>الانطلاق</small><b>${escapeHtml(b.pickup_address)}</b></div>
+     <div><small>الوجهة</small><b>${escapeHtml(b.destination_address)}</b></div>
+    </div>
+    <div class="admin-dispatch-list">
+     ${items.map(item=>{
+      const assigned=Boolean(item.driverId);
+      const canAssign=["confirmed","driver_assigned","ready"].includes(b.status);
+      return `<div class="admin-dispatch-item">
+       <div class="admin-dispatch-info">
+        <b>${escapeHtml(item.vehicleMake||"سيارة")} ${escapeHtml(item.vehicleModel||"")}</b>
+        <small>لوحة ${escapeHtml(item.plateNumber||"—")} · المالك ${escapeHtml(item.ownerName||"—")} · ${escapeHtml(item.packageName||"")}</small>
+        <small>${item.serviceStartsAt?new Date(item.serviceStartsAt).toLocaleString("ar-EG"):"—"} — ${item.serviceEndsAt?new Date(item.serviceEndsAt).toLocaleTimeString("ar-EG"):"—"}</small>
+        <small>${assigned?"السائق: "+escapeHtml(item.driverName||"مُسند"):"لم يتم تعيين سائق"}</small>
+       </div>
+       ${canAssign?`<div class="admin-dispatch-control">
+        <select data-driver-select="${item.id}" aria-label="اختيار السائق">
+         <option value="">اختر سائقًا موثقًا</option>
+         ${availableDrivers.map(d=>`<option value="${d.id}" ${d.id===item.driverId?"selected":""}>${escapeHtml(d.display_name)} — ${escapeHtml(d.phone_e164)}</option>`).join("")}
+        </select>
+        <button class="btn btn-primary btn-small" data-action="assign-driver" data-id="${item.id}">${assigned?"تغيير السائق":"إسناد السائق"}</button>
+       </div>`: `<span class="status gray">الإسناد بعد تأكيد الحجز</span>`}
+      </div>`;
+     }).join("")||'<small>لا توجد عناصر مركبات لهذا الحجز.</small>'}
+    </div>
+   </article>`;
+  }).join("")}</div>`:'<div class="empty-state"><div class="empty-icon">🗓️</div><b>لا توجد حجوزات فعلية حتى الآن</b><p>عندما يتم إنشاء حجز من خدمة الحجز، سيظهر هنا لتعيين السيارة والسائق ومتابعة التنفيذ.</p></div>'}
+ </div>
+ <div class="notice warning">إسناد السائق متاح للحجوزات المؤكدة فقط. يجب أن يكون ملف السائق موثقًا ونشطًا، ويتحقق الخادم من عدم تعارض مواعيده مع مهمة أخرى.</div>`;
+}
 function renderAdminVehicles(){
  const vehicles=adminFleet.vehicles||[];
  const pending=vehicles.filter(v=>v.approval_status==="pending");
@@ -360,7 +417,12 @@ async function loadAdminFleet(){
  }finally{adminFleetLoading=false;}
 }
 function roleForProfile(p){const r=p?.roles||[];if(r.includes("admin")||r.includes("finance_admin")||r.includes("operations_admin"))return "admin";if(r.includes("owner"))return "owner";if(r.includes("driver"))return "driver";return "customer";}
-function applyProfile(p){currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();if(state.role==='admin')loadAdminFleet().catch(e=>toast(adminErrorMessage(e)));}
+function applyProfile(p){
+ currentProfile=p;state.role=roleForProfile(p);state.view=roleConfig[state.role].default;updateAccountButton();render();
+ if(state.role==="admin"){
+  Promise.all([loadAdminFleet(),loadAdminBookings()]).catch(e=>toast(adminErrorMessage(e)));
+ }
+}
 function normalizeCustomerPhone(value){
  const raw=String(value||"").replace(/\D/g,"");
  let digits=raw;
