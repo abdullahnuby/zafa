@@ -43,12 +43,21 @@ export default async function handler(req, res) {
         message: typeof body.message === "string" ? body.message.slice(0, 100) : null
       });
     } catch (error) {
+      const errorObject = error !== null && typeof error === "object" ? error : null;
+      const causeObject = errorObject && errorObject.cause !== null && typeof errorObject.cause === "object"
+        ? errorObject.cause
+        : null;
+      const detail = causeObject && typeof causeObject.code === "string"
+        ? causeObject.code
+        : errorObject && typeof errorObject.message === "string"
+          ? errorObject.message
+          : "NETWORK_ERROR";
       results.push({
         route: route.label,
         method: route.method,
         status: 0,
         code: "NETWORK_ERROR",
-        error: String(error?.cause?.code || error?.message || "NETWORK_ERROR").slice(0, 100)
+        error: detail.slice(0, 100)
       });
     }
   }
