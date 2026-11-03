@@ -68,24 +68,24 @@ export default async function handler(req, res) {
     client = await getPool().connect();
     await client.query("BEGIN");
     const selected = await client.query(
-      \`SELECT vm.id,vm.storage_key,vm.approved
+      `SELECT vm.id,vm.storage_key,vm.approved
          FROM public.vehicle_media vm
          JOIN public.vehicles v ON v.id=vm.vehicle_id
         WHERE vm.id=$1::uuid AND vm.vehicle_id=$2::uuid
-        FOR UPDATE OF vm,v\`,
+        FOR UPDATE OF vm,v`,
       [mediaId, vehicleId]
     );
     if (!selected.rows.length) throw new ApiError(404, "VEHICLE_PHOTO_NOT_FOUND");
     const photo = selected.rows[0];
     if (photo.approved) throw new ApiError(409, "VEHICLE_PHOTO_ALREADY_COMPLETED");
-    if (!photo.storage_key.startsWith(\`vehicles/\${vehicleId}/\`)) {
+    if (!photo.storage_key.startsWith(`vehicles/${vehicleId}/`)) {
       throw new ApiError(400, "INVALID_VEHICLE_PHOTO_KEY");
     }
 
     await putVehiclePhotoObject(photo.storage_key, bytes, contentType);
     await client.query(
-      \`INSERT INTO public.audit_logs (actor_user_id,action,entity_type,entity_id,after_data)
-       VALUES ($1,'admin.vehicle_photo_bytes_uploaded','vehicles',$2,$3::jsonb)\`,
+      `INSERT INTO public.audit_logs (actor_user_id,action,entity_type,entity_id,after_data)
+       VALUES ($1,'admin.vehicle_photo_bytes_uploaded','vehicles',$2,$3::jsonb)`,
       [actor.id, vehicleId, JSON.stringify({ mediaId, size: bytes.length, contentType })]
     );
     await client.query("COMMIT");
