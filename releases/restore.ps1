@@ -6,18 +6,20 @@ $partsDir = Join-Path $scriptDir 'zaffa-mvp-parts'
 $archive = Join-Path $scriptDir 'zaffa-mvp-0.1.0.tar.xz'
 $expectedSha256 = 'f321b4f6d7f0770e118cd3f5183346087a6ce415bd59ac81bf17c1294aca53e9'
 
-if (-not (Test-Path -LiteralPath $partsDir -PathType Container)) {
-    throw "Missing archive parts directory: $partsDir"
-}
+if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $partsDir -PathType Container)) {
+        throw "Missing archive and fallback parts directory: $partsDir"
+    }
 
-$parts = @(Get-ChildItem -LiteralPath $partsDir -Filter 'part-*.b64' -File | Sort-Object Name)
-if ($parts.Count -ne 9) {
-    throw "Expected 9 archive parts; found $($parts.Count)"
-}
+    $parts = @(Get-ChildItem -LiteralPath $partsDir -Filter 'part-*.b64' -File | Sort-Object Name)
+    if ($parts.Count -ne 9) {
+        throw "Expected 9 archive parts; found $($parts.Count)"
+    }
 
-$base64Text = ($parts | ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw).Trim() }) -join ''
-$archiveBytes = [Convert]::FromBase64String($base64Text)
-[System.IO.File]::WriteAllBytes($archive, $archiveBytes)
+    $base64Text = ($parts | ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw).Trim() }) -join ''
+    $archiveBytes = [Convert]::FromBase64String($base64Text)
+    [System.IO.File]::WriteAllBytes($archive, $archiveBytes)
+}
 
 $actualSha256 = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actualSha256 -ne $expectedSha256) {
