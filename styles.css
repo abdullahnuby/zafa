@@ -24,3 +24,14 @@
 .auth-note{background:#f8f5ee;border:1px solid #eee5d5;color:#7c6947;border-radius:11px;padding:11px 13px;font-size:11px;line-height:1.8;margin-top:12px}
 @media(max-width:900px){.payment-methods-strip{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.brand-logo{width:148px}.topbar{padding:0 15px}.top-actions{gap:8px}.account-button{min-width:auto;padding:8px 11px;font-size:10px}.mobile-brand-logo{width:118px}.payment-methods-strip{grid-template-columns:1fr}}
+
+/* ZAFFA wedding-car brand identity */
+.brand { padding-bottom: 26px; }
+.brand-logo { width: 190px; max-width: 100%; height: auto; }
+.mobile-brand { gap: 8px; }
+.mobile-brand-logo { width: 42px; height: 42px; object-fit: contain; border-radius: 10px; flex: 0 0 auto; }
+.mobile-brand-wordmark { color: var(--navy); font-family: 'Noto Sans Arabic', Cairo, Tahoma, sans-serif; font-size: 19px; font-weight: 900; line-height: 1; }
+@media(max-width:620px) {
+  .mobile-brand-logo { width: 42px; height: 42px; }
+  .mobile-brand-wordmark { font-size: 18px; }
+}
