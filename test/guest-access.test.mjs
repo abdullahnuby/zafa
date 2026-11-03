@@ -50,6 +50,12 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("status===404"));
 });
 
+test("temporary auth route diagnostic never accepts credentials or exposes user data", async () => {
+  const route = await readFile(new URL("../api/v1/auth-route-diagnostic.js", import.meta.url), "utf8");
+  assert.match(route, /METHOD_NOT_ALLOWED/);
+  assert.doesNotMatch(route, /password|authorization|cookie/i);
+});
+
 test("PWA service worker invalidates old shell and never caches API data", () => {
   assert.ok(worker.includes("zaffa-shell-v3"));
   assert.ok(worker.includes('key.startsWith("zaffa-shell-")'));
