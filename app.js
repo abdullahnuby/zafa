@@ -941,7 +941,8 @@ document.addEventListener('click',event=>{
  else if(action==='booking-details')bookingDetails(id);
  else if(action==='owner-accept')ownerAccept(id);
  else if(action==='owner-decline'){const b=bookingById(id);if(b)b.status='declined';persist();closeModal();render();toast('تم رفض الطلب في البيانات التجريبية');}
-  else if(action==='assign-driver')assignDriver(id);
+  else if(action==='assign-driver')assignDriverToBooking(id);
+ else if(action==='reload-bookings')loadAdminBookings().then(render).catch(e=>toast(adminErrorMessage(e)));
  else if(action==='driver-status')updateBookingStatus(id,btn.dataset.status);
  else if(action==='add-car')addCar();
  else if(action==='save-car')saveCar();
