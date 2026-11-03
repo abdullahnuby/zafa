@@ -1,0 +1,13 @@
+{
+  "name": "zaffa-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ZAFFA chauffeur wedding-car booking PWA prototype",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
