@@ -43,10 +43,10 @@ test("customer registration and sign-in use phone and password without an email 
 });
 
 test("Neon Auth API requests use a signed JWT, never an opaque session identifier", () => {
-  assert.match(app, /getAuthBearerToken\\(authClient\\)/);
-  assert.doesNotMatch(app, /authData\\?\\.session\\?\\.token/);
-  assert.match(tokenHelper, /authClient\\.token\\(\\)/);
-  assert.doesNotMatch(app, /authClient\\.getJWTToken\\?\\.\\(\\)/);
+  assert.ok(app.includes("getAuthBearerToken(authClient)"));
+  assert.ok(!app.includes("authData?.session?.token"));
+  assert.ok(tokenHelper.includes("authClient.token()"));
+  assert.ok(!app.includes("authClient.getJWTToken?.()"));
 });
 
 test("orphaned phone identities can be recovered to a customer profile", () => {
