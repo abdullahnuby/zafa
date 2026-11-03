@@ -21,6 +21,14 @@ Status: infrastructure and identity/payment API foundations are present; live bo
 
 The frontend previously sent Better Auth's opaque `session.token` value as a Bearer JWT after successful password authentication. That caused the profile API to reject the request with HTTP 401. The client now uses only the signed JWT returned by `authClient.token()`. Regression tests protect this distinction. Existing customer records and Auth sessions were preserved; no DB migration was needed.
 
+## Vehicle photo workflow — 2026-11-03
+
+- Admin photo upload and gallery management are implemented in source: up to three photos per vehicle, JPEG/PNG/WEBP, 5 MB each, signed direct uploads to Neon Object Storage.
+- `vehicle-photos` is a dedicated public-read image bucket; payment receipts remain private.
+- Production migration `0004_vehicle_media_max_three` is applied and recorded. The database restricts image slots to 0, 1 and 2 and enforces unique slots per vehicle.
+- Customer catalogue returns up to three approved photo URLs; admins can set a primary image and delete photos subject to the published-car last-image guard.
+- GitHub Actions passed 47/47 tests. Browser-to-object upload still requires a real browser smoke test after the matching Vercel deployment is READY.
+
 ## Current launch boundary
 
 - SMS phone-ownership verification and SMS password reset are not implemented; a phone alias must not be described as a verified phone number.
