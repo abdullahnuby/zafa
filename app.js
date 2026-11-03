@@ -267,7 +267,7 @@ document.addEventListener('click',event=>{
  else if(action==='close-modal')closeModal(true);
  else if(action==='backdrop'&&event.target.classList.contains('modal-backdrop'))closeModal(true);
  else if(action==='search-cars'){state.searchDate=document.querySelector('#home-date')?.value||state.searchDate;state.searchZone=document.querySelector('#home-zone')?.value||state.searchZone;state.searchOccasion=document.querySelector('#home-occasion')?.value||state.searchOccasion;persist();browseFilter='all';go('cars');}
- else if(action==='submit-booking')submitBooking();
+
  else if(action==='booking-details')bookingDetails(id);
  else if(action==='owner-accept')ownerAccept(id);
  else if(action==='owner-decline'){const b=bookingById(id);if(b)b.status='declined';persist();closeModal();render();toast('تم رفض الطلب في البيانات التجريبية');}
