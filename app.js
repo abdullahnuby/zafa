@@ -296,12 +296,23 @@ function renderAdminVehicles(){
       <div class="admin-price-chips">${Object.entries(v.package_prices||{}).map(([k,val])=>`<span>${({mini:"ميني",classic:"كلاسيك",wedding:"زفاف",royal:"رويال"}[k]||k)}: ${money(Number(val))}</span>`).join("")}</div>
      </div>
     </div>
+    <div class="admin-photo-section">
+      <div class="admin-subhead"><b>صور السيارة (${(v.images||[]).length}/3)</b>${(v.images||[]).length<3?`<button class="text-link" data-action="add-vehicle-photos" data-id="${v.id}">+ رفع صور</button>`:"<small>وصلت للحد الأقصى</small>"}</div>
+      <div class="admin-photo-grid">${(v.images||[]).map((photo,index)=>`<div class="admin-photo-tile">
+        ${photo.approved&&photo.url?`<img src="${escapeHtml(photo.url)}" alt="صورة ${index+1}" loading="lazy">`:'<div class="photo-pending">رفع غير مكتمل</div>'}
+        <div class="admin-photo-tile-meta"><span>${photo.sortOrder===0?"رئيسية":`صورة ${index+1}`}</span>
+          ${photo.approved&&photo.sortOrder!==0?`<button class="text-link" data-action="vehicle-photo-primary" data-id="${v.id}" data-media-id="${photo.id}">تعيين كرئيسية</button>`:""}
+          <button class="text-link danger-link" data-action="delete-vehicle-photo" data-id="${v.id}" data-media-id="${photo.id}">حذف</button>
+        </div>
+      </div>`).join("")||'<small>لم ترفع صور لهذه السيارة بعد.</small>'}</div>
+    </div>
     <div class="admin-vehicle-docs">
       <div class="admin-subhead"><b>المستندات</b><button class="text-link" data-action="add-vehicle-doc" data-id="${v.id}">+ إضافة مستند</button></div>
       ${(v.documents||[]).length?(v.documents||[]).map(doc=>`<div class="doc-review-row"><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(doc.documentType)}</a><span class="status ${doc.reviewStatus==="approved"?"green":doc.reviewStatus==="rejected"?"red":"orange"}">${doc.reviewStatus==="approved"?"معتمد":doc.reviewStatus==="rejected"?"مرفوض":"قيد المراجعة"}</span>${doc.reviewStatus==="pending"?`<button class="btn btn-soft btn-small" data-action="review-document" data-kind="vehicle" data-id="${doc.id}" data-decision="approve">اعتماد</button><button class="btn btn-danger btn-small" data-action="review-document" data-kind="vehicle" data-id="${doc.id}" data-decision="reject">رفض</button>`:""}<small>${doc.expiresOn||"بدون تاريخ انتهاء"}</small></div>`).join(""):"<small>لم تتم إضافة مستندات. راجع الترخيص والتأمين ورقيًا قبل النشر.</small>"}
     </div>
     <div class="admin-vehicle-actions">
       <button class="btn btn-outline btn-small" data-action="edit-car" data-id="${v.id}">تعديل السيارة والأسعار</button>
+      ${(v.images||[]).length<3?`<button class="btn btn-outline btn-small" data-action="add-vehicle-photos" data-id="${v.id}">+ إضافة صور</button>`:""}
       <button class="btn btn-outline btn-small" data-action="add-rule" data-id="${v.id}">جدول الإتاحة</button>
       ${status!=="approved"?`<button class="btn btn-primary btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="approved">اعتماد ونشر</button>`:`<button class="btn btn-danger btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="suspended">إيقاف النشر</button>`}
       ${status==="pending"||status==="draft"?`<button class="btn btn-danger btn-small" data-action="vehicle-decision" data-id="${v.id}" data-decision="rejected">رفض</button>`:""}
