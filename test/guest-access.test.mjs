@@ -5,8 +5,6 @@ import { normalizeEgyptianPhone, phoneFromInternalAuthEmail } from "../api/v1/pr
 import { extractBearerToken } from "../lib/auth.js";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
-import { readFileSync } from "node:fs";
-const FakeProfileApiSource = readFileSync(new URL("../api/v1/profile.js", import.meta.url), "utf8");
 const [app, shell, worker, profileApi] = await Promise.all([
   read("../app.js"),
   read("../index.html"),
@@ -56,7 +54,7 @@ test("orphaned phone identities can be recovered to a customer profile", () => {
 });
 
 test("a profile lookup bootstraps a missing profile from the signed-in auth identity", () => {
-  assert.match(FakeProfileApiSource, /bootstrapProfileFromAuthIdentity/);
+  assert.match(profileApi, /bootstrapProfileFromAuthIdentity/);
 });
 
 test("Egyptian mobile numbers normalize consistently for customer identities", () => {
@@ -75,8 +73,8 @@ test("wedding home page uses real image-led occasion cards and friendly authenti
   assert.ok(app.includes("showAuthError"));
   assert.ok(app.includes("friendlyAuthError"));
   assert.ok(app.includes("status===404"));
-  assert.ok(app.includes("authClient.token?.()"));
-  assert.ok(!app.includes("authClient.getSession()"));
+  assert.ok(app.includes("authClient.getJWTToken?.()"));
+  assert.ok(!app.includes("authClient.token?.()"));
 });
 
 test("brand identity is consistent and infrastructure status is not exposed in the customer header", async () => {
